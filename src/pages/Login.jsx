@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Sparkles } from 'lucide-react'
-import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth'
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, sendPasswordResetEmail } from 'firebase/auth'
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../firebase'
 import Button from '../components/Button'
@@ -13,6 +13,9 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetSent, setResetSent] = useState(false)
 
   // Handle redirect result (for mobile/Vercel)
   useEffect(() => {
@@ -109,6 +112,88 @@ const Login = () => {
     setLoading(false)
   }
 
+  const handlePasswordReset = async (e) => {
+    e.preventDefault()
+    setError('')
+    if (!resetEmail.trim()) { setError('Bitte E-Mail eingeben.'); return }
+    setLoading(true)
+    try {
+      await sendPasswordResetEmail(auth, resetEmail.trim())
+      setResetSent(true)
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') setError('Kein Account mit dieser E-Mail gefunden.')
+      else if (err.code === 'auth/invalid-email') setError('Ungültige E-Mail-Adresse.')
+      else setError('Fehler beim Senden. Bitte versuche es erneut.')
+    }
+    setLoading(false)
+  }
+
+  // ===== PASSWORD RESET SCREEN =====
+  if (showReset) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '20px', background: 'linear-gradient(160deg, #FFFDF7 0%, #FFF3D6 30%, #FFE8B8 60%, #FFF9EB 100%)'
+      }}>
+        <div style={{ width: '100%', maxWidth: '400px' }} className="animate-fade-in-up">
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <div style={{
+              width: '72px', height: '72px', background: 'linear-gradient(135deg, #7EB5E6, #5A9FD4)',
+              borderRadius: '22px', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 30px rgba(126,181,230,0.3)'
+            }}>
+              <span style={{ fontSize: '28px' }}>🔑</span>
+            </div>
+            <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#2A2420', marginBottom: '8px' }}>Passwort vergessen?</h1>
+            <p style={{ color: '#A89B8C', fontSize: '14px', lineHeight: '1.5' }}>
+              {resetSent ? 'E-Mail wurde gesendet! Prüfe dein Postfach.' : 'Gib deine E-Mail ein und wir senden dir einen Reset-Link.'}
+            </p>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.9)', borderRadius: '24px',
+            padding: '28px', boxShadow: '0 8px 40px rgba(42,36,32,0.08)'
+          }}>
+            {error && (
+              <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '14px', padding: '12px 16px', marginBottom: '16px', color: '#DC2626', fontSize: '14px', fontWeight: '500' }}>{error}</div>
+            )}
+            {resetSent ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: '56px', height: '56px', background: 'rgba(107,201,160,0.15)', borderRadius: '16px', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '24px' }}>✓</span>
+                </div>
+                <p style={{ color: '#6BC9A0', fontWeight: '600', fontSize: '15px', marginBottom: '16px' }}>Reset-Link gesendet!</p>
+                <p style={{ color: '#7A6F62', fontSize: '13px', lineHeight: '1.5', marginBottom: '20px' }}>
+                  Prüfe dein E-Mail-Postfach (auch Spam) und folge dem Link um dein Passwort zurückzusetzen.
+                </p>
+                <Button variant="primary" onClick={() => { setShowReset(false); setResetSent(false); setResetEmail(''); setError('') }} style={{ width: '100%', padding: '14px' }}>
+                  Zurück zum Login
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handlePasswordReset}>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#5C5349', display: 'block', marginBottom: '6px' }}>E-Mail</label>
+                  <input type="email" placeholder="name@beispiel.de" value={resetEmail} onChange={e => setResetEmail(e.target.value)} required
+                    style={{ width: '100%', padding: '14px 16px', background: 'rgba(42,36,32,0.03)', border: '1.5px solid #E8DFD3', borderRadius: '14px', color: '#2A2420', fontSize: '15px', boxSizing: 'border-box' }}
+                    onFocus={e => e.target.style.borderColor = '#7EB5E6'} onBlur={e => e.target.style.borderColor = '#E8DFD3'} />
+                </div>
+                <Button type="submit" variant="primary" disabled={loading} style={{ width: '100%', padding: '14px', marginBottom: '12px' }}>
+                  {loading ? 'Wird gesendet...' : 'Reset-Link senden'}
+                </Button>
+                <button type="button" onClick={() => { setShowReset(false); setError(''); setResetEmail('') }}
+                  style={{ width: '100%', padding: '12px', background: 'none', border: '1.5px solid #E8DFD3', borderRadius: '14px', color: '#7A6F62', fontWeight: '500', fontSize: '14px', cursor: 'pointer' }}>
+                  Zurück zum Login
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -160,11 +245,17 @@ const Login = () => {
                 style={{ width: '100%', padding: '14px 16px', background: 'rgba(42,36,32,0.03)', border: '1.5px solid #E8DFD3', borderRadius: '14px', color: '#2A2420', fontSize: '15px', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#FF6B9D'} onBlur={e => e.target.style.borderColor = '#E8DFD3'} />
             </div>
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '8px' }}>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#5C5349', display: 'block', marginBottom: '6px' }}>Passwort</label>
               <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
                 style={{ width: '100%', padding: '14px 16px', background: 'rgba(42,36,32,0.03)', border: '1.5px solid #E8DFD3', borderRadius: '14px', color: '#2A2420', fontSize: '15px', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#FF6B9D'} onBlur={e => e.target.style.borderColor = '#E8DFD3'} />
+            </div>
+            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+              <button type="button" onClick={() => { setShowReset(true); setResetEmail(email); setError('') }}
+                style={{ background: 'none', border: 'none', color: '#7EB5E6', fontSize: '13px', fontWeight: '500', cursor: 'pointer', padding: '4px 0' }}>
+                Passwort vergessen?
+              </button>
             </div>
             <Button type="submit" variant="primary" disabled={loading} style={{ width: '100%', padding: '14px' }}>
               {loading ? 'Wird geladen...' : 'Anmelden'}

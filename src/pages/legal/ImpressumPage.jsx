@@ -111,7 +111,7 @@ const ImpressumPage = () => {
 
       {/* Footer */}
       <p style={{ textAlign: 'center', fontSize: '12px', color: '#C4B8A8', marginTop: '20px', marginBottom: '8px' }}>
-        Stand: Februar 2025
+        Stand: Februar 2026 — Beta
       </p>
     </div>
   )

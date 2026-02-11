@@ -50,14 +50,12 @@ Manager konnen Teams erstellen und Einladungscodes generieren. Models konnen Tea
 Die Zuweisung bestimmter Funktionen ist rollenabhangig und kann sich je nach gewahltem Abonnement unterscheiden.`,
     },
     {
-      title: 'SS4 Premium & Zahlungen',
-      content: `CreatorHub bietet verschiedene Abonnement-Plane an: Free, Pro und Business. Der Funktionsumfang variiert je nach gewahltem Plan.
+      title: 'SS4 Beta-Phase & Zahlungen',
+      content: `CreatorHub befindet sich derzeit in der Beta-Phase. Wahrend der Beta ist die Nutzung der Plattform kostenlos. Es konnen sich maximal 10 Manager registrieren, die jeweils 1 Model einladen konnen.
 
-Kostenpflichtige Abonnements werden monatlich abgerechnet. Die Zahlung erfolgt uber den Zahlungsdienstleister Stripe. Es gelten zusatzlich die Nutzungsbedingungen von Stripe.
+Zukunftig wird CreatorHub verschiedene Abonnement-Plane anbieten (Free, Pro, Business). Der Funktionsumfang wird je nach gewahltem Plan variieren. Kostenpflichtige Abonnements werden monatlich uber den Zahlungsdienstleister Stripe abgerechnet. Es gelten zusatzlich die Nutzungsbedingungen von Stripe.
 
 Die Preise verstehen sich inklusive der gesetzlichen Mehrwertsteuer, sofern anwendbar. Preisanderungen werden mindestens 30 Tage im Voraus angekundigt.
-
-Bei einem Downgrade auf einen gunstigeren Plan bleiben die Funktionen des hoherwertigen Plans bis zum Ende der aktuellen Abrechnungsperiode aktiv.
 
 Es besteht ein 14-tagiges Widerrufsrecht ab Vertragsschluss. Der Widerruf kann formlos per E-Mail an kontakt@creatorhub.app erfolgen.`,
     },
@@ -142,7 +140,7 @@ Bei Fragen zu diesen AGB kannst du uns jederzeit unter kontakt@creatorhub.app ko
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Scale size={18} color="#E8A940" />
           <div>
-            <p style={{ fontWeight: '600', color: '#2A2420', fontSize: '13px' }}>Stand: Februar 2025</p>
+            <p style={{ fontWeight: '600', color: '#2A2420', fontSize: '13px' }}>Stand: Februar 2026 — Beta</p>
             <p style={{ fontSize: '12px', color: '#7A6F62' }}>Bitte lies diese Bedingungen sorgfaltig durch</p>
           </div>
         </div>

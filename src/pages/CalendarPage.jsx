@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Target, Plus, X, Trash2, Edit3, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Target, Plus, X, Trash2, Edit3, ChevronLeft, ChevronRight, Users } from 'lucide-react'
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
-  query, where, orderBy, onSnapshot, getDocs, serverTimestamp, Timestamp
+  query, where, orderBy, onSnapshot, getDocs, serverTimestamp
 } from 'firebase/firestore'
 import { db, auth } from '../firebase'
+import { useCompany } from '../contexts/CompanyContext'
 import { notifyTeam, notifyOwner } from '../utils/notifications'
 import Card from '../components/Card'
 import Button from '../components/Button'
@@ -45,23 +46,37 @@ const CalendarPage = () => {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
 
   const today = new Date()
+  const { company, isApproved, hasCompany, members, isOwner } = useCompany()
 
+  // Load events: if in a company, load all company events; otherwise only own events
   useEffect(() => {
     const user = auth.currentUser
     if (!user) return
 
-    const q = query(
-      collection(db, 'events'),
-      where('userId', '==', user.uid),
-      orderBy('date', 'asc')
-    )
-
-    const unsub = onSnapshot(q, (snap) => {
-      setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    })
-
-    return () => unsub()
-  }, [])
+    if (hasCompany && company?.id && isApproved) {
+      // Team calendar: load all events from this company
+      const q = query(
+        collection(db, 'events'),
+        where('companyId', '==', company.id),
+        orderBy('date', 'asc')
+      )
+      const unsub = onSnapshot(q, (snap) => {
+        setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      })
+      return () => unsub()
+    } else {
+      // Personal calendar only
+      const q = query(
+        collection(db, 'events'),
+        where('userId', '==', user.uid),
+        orderBy('date', 'asc')
+      )
+      const unsub = onSnapshot(q, (snap) => {
+        setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      })
+      return () => unsub()
+    }
+  }, [hasCompany, company?.id, isApproved])
 
   const resetForm = () => {
     setTitle('')
@@ -80,6 +95,8 @@ const CalendarPage = () => {
 
     const data = {
       userId: user.uid,
+      userName: user.displayName || user.email || 'Unbekannt',
+      companyId: (hasCompany && company?.id) ? company.id : null,
       title: title.trim(),
       date: eventDate,
       time: eventTime || '',
@@ -95,13 +112,9 @@ const CalendarPage = () => {
       await addDoc(collection(db, 'events'), data)
 
       // Notify team members about new event
-      try {
-        const memberQ = query(collection(db, 'company_members'), where('userId', '==', user.uid))
-        const memberSnap = await getDocs(memberQ)
-        if (!memberSnap.empty) {
-          const companyId = memberSnap.docs[0].data().companyId
-          // Get all team members
-          const teamQ = query(collection(db, 'company_members'), where('companyId', '==', companyId))
+      if (hasCompany && company?.id) {
+        try {
+          const teamQ = query(collection(db, 'company_members'), where('companyId', '==', company.id))
           const teamSnap = await getDocs(teamQ)
           const teamMembers = teamSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
@@ -112,19 +125,15 @@ const CalendarPage = () => {
             link: '/kalender',
           }
 
-          // Notify all approved team members
           await notifyTeam(teamMembers, user.uid, notifData)
 
-          // Also notify company owner (not in company_members)
-          const compSnap = await getDocs(query(collection(db, 'companies'), where('ownerId', '!=', '')))
-          for (const cd of compSnap.docs) {
-            if (cd.id === companyId && cd.data().ownerId !== user.uid) {
-              await notifyOwner(cd.data().ownerId, { ...notifData, senderId: user.uid })
-            }
+          // Notify company owner if not the creator
+          if (company.ownerId && company.ownerId !== user.uid) {
+            await notifyOwner(company.ownerId, { ...notifData, senderId: user.uid })
           }
+        } catch (notifErr) {
+          console.warn('Calendar notification error:', notifErr)
         }
-      } catch (notifErr) {
-        console.warn('Calendar notification error:', notifErr)
       }
     }
     resetForm()
@@ -165,6 +174,8 @@ const CalendarPage = () => {
     return parseInt(y) === currentYear && parseInt(m) === currentMonth + 1
   }).sort((a, b) => a.date.localeCompare(b.date))
 
+  const currentUser = auth.currentUser
+
   const inputStyle = {
     width: '100%',
     padding: '12px 14px',
@@ -184,7 +195,15 @@ const CalendarPage = () => {
           <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#2A2420', letterSpacing: '-0.3px' }}>
             Kalender
           </h2>
-          <p style={{ color: '#A89B8C', fontSize: '14px', marginTop: '2px' }}>{monthEvents.length} Termine</p>
+          <p style={{ color: '#A89B8C', fontSize: '14px', marginTop: '2px' }}>
+            {monthEvents.length} Termine
+            {hasCompany && isApproved && (
+              <span style={{ marginLeft: '6px' }}>
+                <Users size={12} style={{ display: 'inline', verticalAlign: '-1px', marginRight: '3px' }} />
+                Team
+              </span>
+            )}
+          </p>
         </div>
         <Button variant="primary" onClick={() => { resetForm(); setShowForm(true) }} style={{ padding: '10px 16px' }}>
           <Plus size={18} /> Neu
@@ -197,7 +216,7 @@ const CalendarPage = () => {
           <button onClick={() => {
             if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1) }
             else setCurrentMonth(currentMonth - 1)
-          }} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '8px' }}>
+          }} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '8px', cursor: 'pointer' }}>
             <ChevronLeft size={20} />
           </button>
           <span style={{ fontWeight: '700', color: '#2A2420', fontSize: '16px', textTransform: 'capitalize' }}>
@@ -206,7 +225,7 @@ const CalendarPage = () => {
           <button onClick={() => {
             if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1) }
             else setCurrentMonth(currentMonth + 1)
-          }} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '8px' }}>
+          }} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '8px', cursor: 'pointer' }}>
             <ChevronRight size={20} />
           </button>
         </div>
@@ -283,14 +302,24 @@ const CalendarPage = () => {
                 <div style={{ width: '4px', height: '40px', background: TYPE_COLORS[event.type] || '#FF6B9D', borderRadius: '2px', flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: '600', color: '#2A2420', fontSize: '14px' }}>{event.title}</p>
-                  <p style={{ fontSize: '12px', color: '#A89B8C' }}>{event.time && `${event.time} Uhr • `}{TYPE_LABELS[event.type]}</p>
+                  <p style={{ fontSize: '12px', color: '#A89B8C' }}>
+                    {event.time && `${event.time} Uhr • `}{TYPE_LABELS[event.type]}
+                    {event.userName && hasCompany && event.userId !== currentUser?.uid && (
+                      <span> • von {event.userName}</span>
+                    )}
+                  </p>
                 </div>
-                <button onClick={() => handleEdit(event)} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '6px' }}>
-                  <Edit3 size={16} />
-                </button>
-                <button onClick={() => handleDelete(event.id)} style={{ background: 'none', border: 'none', color: '#DC2626', padding: '6px' }}>
-                  <Trash2 size={16} />
-                </button>
+                {/* Only show edit/delete if it's your own event */}
+                {event.userId === currentUser?.uid && (
+                  <>
+                    <button onClick={() => handleEdit(event)} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '6px', cursor: 'pointer' }}>
+                      <Edit3 size={16} />
+                    </button>
+                    <button onClick={() => handleDelete(event.id)} style={{ background: 'none', border: 'none', color: '#DC2626', padding: '6px', cursor: 'pointer' }}>
+                      <Trash2 size={16} />
+                    </button>
+                  </>
+                )}
               </Card>
             ))
           )}
@@ -329,6 +358,9 @@ const CalendarPage = () => {
               <p style={{ fontSize: '13px', color: '#A89B8C', marginTop: '2px' }}>
                 {event.time && `${event.time} Uhr`}
                 {event.notes && ` • ${event.notes}`}
+                {event.userName && hasCompany && event.userId !== currentUser?.uid && (
+                  <span> • von {event.userName}</span>
+                )}
               </p>
             </div>
             <span style={{
@@ -363,7 +395,7 @@ const CalendarPage = () => {
               <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#2A2420' }}>
                 {editingEvent ? 'Event bearbeiten' : 'Neues Event'}
               </h3>
-              <button onClick={resetForm} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '4px' }}>
+              <button onClick={resetForm} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '4px', cursor: 'pointer' }}>
                 <X size={22} />
               </button>
             </div>
@@ -396,7 +428,7 @@ const CalendarPage = () => {
                       border: eventType === key ? 'none' : '1.5px solid #E8DFD3',
                       background: eventType === key ? TYPE_COLORS[key] : 'white',
                       color: eventType === key ? 'white' : '#7A6F62',
-                      fontSize: '12px', fontWeight: '600'
+                      fontSize: '12px', fontWeight: '600', cursor: 'pointer',
                     }}
                   >
                     {label}

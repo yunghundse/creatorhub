@@ -1,57 +1,15 @@
 import React, { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  Home, Kanban, PieChart, Calendar, MessageCircle,
-  Sparkles, Settings, Shield, Building2, Users,
-  BarChart3, Upload, Video, Scissors, TrendingUp,
-  ListTodo, Menu, X, DollarSign, CheckCircle,
-  Briefcase, FileText, Timer, Layers, HelpCircle, Flame
+  Home, Kanban, Calendar, MessageCircle,
+  Sparkles, Settings, Building2,
+  Menu, X, HelpCircle, FileText, Scale, Shield
 } from 'lucide-react'
 import { db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import NotificationBell from './NotificationBell'
 
 const ADMIN_EMAIL = 'yunghundse@gmail.com'
-
-// Base navigation per role (WITHOUT Premium, WITH Firma)
-const ROLE_NAV = {
-  admin: [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
-    { path: '/dashboard/audit-log', icon: FileText, label: 'Audit' },
-    { path: '/content', icon: Kanban, label: 'Content' },
-    { path: '/finanzen', icon: PieChart, label: 'Finanzen' },
-    { path: '/kalender', icon: Calendar, label: 'Kalender' },
-    { path: '/chat', icon: MessageCircle, label: 'Chat' },
-    { path: '/admin', icon: Shield, label: 'Admin' },
-    { path: '/fyp', icon: Flame, label: 'FYP' },
-  ],
-  manager: [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
-    { path: '/dashboard/approvals', icon: CheckCircle, label: 'Freigaben' },
-    { path: '/dashboard/revenue', icon: DollarSign, label: 'Revenue' },
-    { path: '/dashboard/brand-deals', icon: Briefcase, label: 'Deals' },
-    { path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
-    { path: '/dashboard/assets', icon: Upload, label: 'Assets' },
-    { path: '/kalender', icon: Calendar, label: 'Kalender' },
-    { path: '/chat', icon: MessageCircle, label: 'Chat' },
-    { path: '/fyp', icon: Flame, label: 'FYP' },
-  ],
-  model: [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
-    { path: '/dashboard/approvals', icon: CheckCircle, label: 'Freigaben' },
-    { path: '/dashboard/schedule', icon: Calendar, label: 'Kalender' },
-    { path: '/dashboard/assets', icon: Upload, label: 'Assets' },
-    { path: '/content', icon: Kanban, label: 'Content' },
-    { path: '/chat', icon: MessageCircle, label: 'Chat' },
-    { path: '/finanzen', icon: PieChart, label: 'Finanzen' },
-    { path: '/fyp', icon: Flame, label: 'FYP' },
-  ],
-}
 
 const ROLE_COLORS = {
   admin: '#FF6B9D',
@@ -65,6 +23,71 @@ const ROLE_LABELS = {
   model: 'Model',
 }
 
+// Simplified navigation: only core features in bottom nav
+// Manager: Home, Team, Kalender, Content, Chat
+// Model: Home, Team, Kalender, Content, Chat
+// Admin: Home, Kalender, Content, Chat, Admin
+const ROLE_NAV = {
+  admin: [
+    { path: '/', icon: Home, label: 'Home' },
+    { path: '/kalender', icon: Calendar, label: 'Kalender' },
+    { path: '/content', icon: Kanban, label: 'Content' },
+    { path: '/chat', icon: MessageCircle, label: 'Chat' },
+    { path: '/admin', icon: Shield, label: 'Admin' },
+  ],
+  manager: [
+    { path: '/', icon: Home, label: 'Home' },
+    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
+    { path: '/kalender', icon: Calendar, label: 'Kalender' },
+    { path: '/content', icon: Kanban, label: 'Content' },
+    { path: '/chat', icon: MessageCircle, label: 'Chat' },
+  ],
+  model: [
+    { path: '/', icon: Home, label: 'Home' },
+    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
+    { path: '/kalender', icon: Calendar, label: 'Kalender' },
+    { path: '/content', icon: Kanban, label: 'Content' },
+    { path: '/chat', icon: MessageCircle, label: 'Chat' },
+  ],
+}
+
+// Extra items for sidebar menu (less important / secondary)
+const SIDEBAR_EXTRA = {
+  admin: [
+    { path: '/firma/assets', icon: FileText, label: 'Firma Assets' },
+    { path: '/firma/tasks', icon: FileText, label: 'Aufgaben' },
+    { path: '/finanzen', label: 'Finanzen', icon: FileText },
+    { path: '/einstellungen', label: 'Einstellungen', icon: Settings },
+    { path: '/dashboard/pricing', label: 'Preise & Pläne', icon: FileText },
+    { path: '/dashboard/subscription', label: 'Abo', icon: FileText },
+    { path: '/legal/impressum', label: 'Impressum', icon: Scale },
+    { path: '/legal/agb', label: 'AGB', icon: FileText },
+    { path: '/legal/datenschutz', label: 'Datenschutz', icon: Shield },
+  ],
+  manager: [
+    { path: '/firma/assets', icon: FileText, label: 'Firma Assets', requiresCompany: true },
+    { path: '/firma/tasks', icon: FileText, label: 'Aufgaben', requiresCompany: true },
+    { path: '/firma/admin', icon: Shield, label: 'Team verwalten', requiresCompany: true },
+    { path: '/finanzen', label: 'Finanzen', icon: FileText },
+    { path: '/einstellungen', label: 'Einstellungen', icon: Settings },
+    { path: '/dashboard/pricing', label: 'Preise & Pläne', icon: FileText },
+    { path: '/dashboard/subscription', label: 'Abo', icon: FileText },
+    { path: '/legal/impressum', label: 'Impressum', icon: Scale },
+    { path: '/legal/agb', label: 'AGB', icon: FileText },
+    { path: '/legal/datenschutz', label: 'Datenschutz', icon: Shield },
+  ],
+  model: [
+    { path: '/firma/assets', icon: FileText, label: 'Firma Assets', requiresCompany: true },
+    { path: '/firma/tasks', icon: FileText, label: 'Aufgaben', requiresCompany: true },
+    { path: '/finanzen', label: 'Finanzen', icon: FileText },
+    { path: '/einstellungen', label: 'Einstellungen', icon: Settings },
+    { path: '/dashboard/subscription', label: 'Abo', icon: FileText },
+    { path: '/legal/impressum', label: 'Impressum', icon: Scale },
+    { path: '/legal/agb', label: 'AGB', icon: FileText },
+    { path: '/legal/datenschutz', label: 'Datenschutz', icon: Shield },
+  ],
+}
+
 const Layout = ({ children, user, userData }) => {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -75,14 +98,21 @@ const Layout = ({ children, user, userData }) => {
   const roleColor = ROLE_COLORS[role]
   const hasCompany = !!userData?.companyId
 
-  // Build nav items: filter out company-required items if no company
+  // Bottom nav items (core only)
   const rawNavItems = ROLE_NAV[role] || ROLE_NAV.model
   const navItems = rawNavItems.filter(item => {
     if (item.requiresCompany && !hasCompany) return false
     return true
   })
 
-  // Dynamic label: replace "Mein Team" with company name if available
+  // Sidebar extra items
+  const rawSidebarItems = SIDEBAR_EXTRA[role] || SIDEBAR_EXTRA.model
+  const sidebarItems = rawSidebarItems.filter(item => {
+    if (item.requiresCompany && !hasCompany) return false
+    return true
+  })
+
+  // Dynamic label: replace "Mein Team" with company name
   const displayNavItems = navItems.map(item => {
     if (item.requiresCompany && companyName) {
       return { ...item, label: companyName.length > 10 ? companyName.slice(0, 10) + '…' : companyName }
@@ -90,17 +120,13 @@ const Layout = ({ children, user, userData }) => {
     return item
   })
 
-  // Load company name for team header
+  // Load company name
   React.useEffect(() => {
     if (!userData?.companyId) { setCompanyName(null); return }
     getDoc(doc(db, 'companies', userData.companyId)).then(snap => {
       if (snap.exists()) setCompanyName(snap.data().name)
     }).catch(() => {})
   }, [userData?.companyId])
-
-  // Mobile: show max 5 items in bottom nav
-  const bottomNavItems = displayNavItems.slice(0, 5)
-  const moreItems = displayNavItems.slice(5)
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FFFDF7 0%, #FFF9EB 30%, #FBF7F2 100%)' }}>
@@ -114,15 +140,14 @@ const Layout = ({ children, user, userData }) => {
       }}>
         <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* Sidebar toggle for extra items */}
-            {moreItems.length > 0 && (
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
-                padding: '8px', background: 'rgba(42,36,32,0.04)', border: '1px solid rgba(232,223,211,0.6)',
-                borderRadius: '10px', color: '#7A6F62', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-              </button>
-            )}
+            {/* Sidebar toggle */}
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
+              padding: '8px', background: 'rgba(42,36,32,0.04)', border: '1px solid rgba(232,223,211,0.6)',
+              borderRadius: '10px', color: '#7A6F62', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}>
+              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
             <div style={{
               width: '40px', height: '40px',
               background: 'linear-gradient(135deg, #FF8FAB 0%, #FF6B9D 100%)',
@@ -137,9 +162,8 @@ const Layout = ({ children, user, userData }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Notification Bell */}
             <NotificationBell />
-            {/* Status Badge — oben rechts */}
+            {/* Status Badge */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '6px 12px', borderRadius: '10px',
@@ -152,27 +176,7 @@ const Layout = ({ children, user, userData }) => {
                   <span style={{ fontSize: '11px', color: '#7A6F62', fontWeight: '500', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{companyName}</span>
                 </>
               )}
-              {userData?.abo && userData.abo !== 'free' && (
-                <>
-                  <span style={{ fontSize: '9px', color: '#C4B8A8' }}>|</span>
-                  <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245,197,99,0.2)', color: '#E8A940', fontWeight: '700', textTransform: 'uppercase' }}>{userData.abo}</span>
-                </>
-              )}
             </div>
-            <button onClick={() => navigate('/onboarding')} title="Einweisung" style={{
-              padding: '10px', background: 'rgba(126,181,230,0.08)',
-              border: '1px solid rgba(126,181,230,0.2)', borderRadius: '12px',
-              color: '#7EB5E6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}>
-              <HelpCircle size={18} />
-            </button>
-            <button onClick={() => navigate('/einstellungen')} style={{
-              padding: '10px', background: 'rgba(42, 36, 32, 0.04)',
-              border: '1px solid rgba(232, 223, 211, 0.6)', borderRadius: '12px',
-              color: '#7A6F62', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}>
-              <Settings size={18} />
-            </button>
             {user?.photoURL ? (
               <img src={user.photoURL} alt="avatar" style={{ width: '36px', height: '36px', borderRadius: '12px', border: `2px solid ${roleColor}40`, objectFit: 'cover' }} />
             ) : (
@@ -188,7 +192,7 @@ const Layout = ({ children, user, userData }) => {
         </div>
       </header>
 
-      {/* Sidebar overlay for extra nav items */}
+      {/* Sidebar overlay */}
       {sidebarOpen && (
         <>
           <div onClick={() => setSidebarOpen(false)} style={{
@@ -201,23 +205,55 @@ const Layout = ({ children, user, userData }) => {
             padding: '20px', paddingTop: '80px', overflowY: 'auto',
             boxShadow: '4px 0 30px rgba(0,0,0,0.1)',
           }} className="animate-fade-in">
-            <p style={{ fontSize: '12px', fontWeight: '600', color: '#A89B8C', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>Navigation</p>
+
+            {/* Main Nav in sidebar too */}
+            <p style={{ fontSize: '11px', fontWeight: '700', color: '#A89B8C', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '10px' }}>Hauptmenü</p>
             {displayNavItems.map(item => {
               const Icon = item.icon
               return (
                 <NavLink key={item.path} to={item.path} end={item.path === '/'} onClick={() => setSidebarOpen(false)}
                   style={({ isActive }) => ({
-                    display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-                    borderRadius: '14px', marginBottom: '4px', textDecoration: 'none',
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px',
+                    borderRadius: '12px', marginBottom: '2px', textDecoration: 'none',
                     background: isActive ? `${roleColor}12` : 'transparent',
                     color: isActive ? roleColor : '#7A6F62',
-                    fontWeight: isActive ? '600' : '400', fontSize: '15px',
+                    fontWeight: isActive ? '600' : '400', fontSize: '14px',
                   })}>
-                  <Icon size={20} />
+                  <Icon size={18} />
                   {item.label}
                 </NavLink>
               )
             })}
+
+            {/* Divider */}
+            <div style={{ height: '1px', background: '#E8DFD3', margin: '14px 0' }} />
+
+            {/* Secondary nav */}
+            <p style={{ fontSize: '11px', fontWeight: '700', color: '#A89B8C', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: '10px' }}>Weitere</p>
+            {sidebarItems.map(item => {
+              const Icon = item.icon
+              return (
+                <NavLink key={item.path} to={item.path} onClick={() => setSidebarOpen(false)}
+                  style={({ isActive }) => ({
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px',
+                    borderRadius: '12px', marginBottom: '2px', textDecoration: 'none',
+                    background: isActive ? `${roleColor}12` : 'transparent',
+                    color: isActive ? roleColor : '#7A6F62',
+                    fontWeight: isActive ? '600' : '400', fontSize: '14px',
+                  })}>
+                  <Icon size={18} />
+                  {item.label}
+                </NavLink>
+              )
+            })}
+
+            {/* Help */}
+            <div style={{ height: '1px', background: '#E8DFD3', margin: '14px 0' }} />
+            <NavLink to="/onboarding" onClick={() => setSidebarOpen(false)}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 14px', borderRadius: '12px', textDecoration: 'none', color: '#7EB5E6', fontSize: '14px' }}>
+              <HelpCircle size={18} />
+              Hilfe & Einweisung
+            </NavLink>
           </div>
         </>
       )}
@@ -229,7 +265,7 @@ const Layout = ({ children, user, userData }) => {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation — only core items */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
         background: 'rgba(255, 253, 247, 0.92)', backdropFilter: 'blur(20px)',
@@ -237,7 +273,7 @@ const Layout = ({ children, user, userData }) => {
         padding: '10px 20px 26px',
       }}>
         <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', justifyContent: 'space-around' }}>
-          {bottomNavItems.map(item => {
+          {displayNavItems.map(item => {
             const Icon = item.icon
             return (
               <NavLink key={item.path} to={item.path} end={item.path === '/'}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from './firebase'
-import { Sparkles, Wrench } from 'lucide-react'
+import { Sparkles, Wrench, Shield } from 'lucide-react'
 
 import Layout from './components/Layout'
 import { CompanyProvider } from './contexts/CompanyContext'
@@ -63,6 +63,75 @@ import SessionsPage from './pages/settings/SessionsPage'
 
 const ADMIN_EMAIL = 'yunghundse@gmail.com'
 
+// Terms acceptance gate for existing users who haven't accepted AGB yet
+const TermsGate = ({ user }) => {
+  const [accepted, setAccepted] = React.useState(false)
+  const [saving, setSaving] = React.useState(false)
+
+  const handleAccept = async () => {
+    if (!accepted) return
+    setSaving(true)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        acceptedTerms: true,
+        acceptedTermsAt: serverTimestamp(),
+      })
+      window.location.reload()
+    } catch (err) {
+      console.error('Terms accept error:', err)
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'linear-gradient(160deg, #FFFDF7 0%, #FFF3D6 30%, #FFE8B8 60%, #FFF9EB 100%)' }}>
+      <div style={{ width: '100%', maxWidth: '420px' }} className="animate-fade-in-up">
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{ width: '72px', height: '72px', background: 'linear-gradient(135deg, #7EB5E6, #5A9FD4)', borderRadius: '22px', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(126,181,230,0.3)' }}>
+            <Shield size={28} color="white" />
+          </div>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#2A2420', marginBottom: '8px' }}>Nutzungsbedingungen</h2>
+          <p style={{ color: '#7A6F62', fontSize: '14px', lineHeight: '1.5' }}>
+            Bitte stimme unseren Bedingungen zu, um creatorhub nutzen zu können.
+          </p>
+        </div>
+
+        <div style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.9)', borderRadius: '24px', padding: '28px', boxShadow: '0 8px 40px rgba(42,36,32,0.08)' }}>
+          <div style={{ background: 'rgba(42,36,32,0.03)', borderRadius: '14px', padding: '16px', marginBottom: '20px', maxHeight: '200px', overflowY: 'auto', fontSize: '13px', color: '#5C5349', lineHeight: '1.6' }}>
+            <p style={{ fontWeight: '600', marginBottom: '8px' }}>Zusammenfassung:</p>
+            <p>Durch die Nutzung von creatorhub stimmst du unseren Allgemeinen Geschäftsbedingungen (AGB), Datenschutzbestimmungen und Nutzungsbedingungen zu. Deine Daten werden gemäß der DSGVO verarbeitet und geschützt. Die Plattform befindet sich aktuell in der Beta-Phase.</p>
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'start', gap: '10px', cursor: 'pointer', padding: '14px', background: accepted ? 'rgba(107,201,160,0.06)' : 'rgba(42,36,32,0.02)', borderRadius: '12px', border: accepted ? '1.5px solid rgba(107,201,160,0.3)' : '1.5px solid #E8DFD3', marginBottom: '20px', transition: 'all 0.2s' }}>
+            <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
+              style={{ width: '18px', height: '18px', accentColor: '#6BC9A0', marginTop: '2px', flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', color: '#5C5349', lineHeight: '1.5' }}>
+              Ich stimme den <a href="/legal/agb" target="_blank" style={{ color: '#FF6B9D', fontWeight: '600', textDecoration: 'none' }}>AGB</a>, <a href="/legal/datenschutz" target="_blank" style={{ color: '#FF6B9D', fontWeight: '600', textDecoration: 'none' }}>Datenschutzbestimmungen</a> und <a href="/legal/nda" target="_blank" style={{ color: '#FF6B9D', fontWeight: '600', textDecoration: 'none' }}>Nutzungsbedingungen</a> zu.
+            </span>
+          </label>
+
+          <button onClick={handleAccept} disabled={!accepted || saving}
+            style={{
+              width: '100%', padding: '14px', border: 'none', borderRadius: '14px',
+              background: accepted ? 'linear-gradient(135deg, #FF8FAB, #FF6B9D)' : '#E8DFD3',
+              color: accepted ? 'white' : '#A89B8C', fontWeight: '600', fontSize: '15px',
+              cursor: accepted ? 'pointer' : 'default', opacity: accepted ? 1 : 0.5,
+              boxShadow: accepted ? '0 4px 15px rgba(255,107,157,0.3)' : 'none',
+              transition: 'all 0.2s', marginBottom: '12px',
+            }}>
+            {saving ? 'Wird gespeichert...' : 'Zustimmen & Weiter'}
+          </button>
+
+          <button onClick={() => auth.signOut()}
+            style={{ width: '100%', padding: '12px', background: 'none', border: '1.5px solid #E8DFD3', borderRadius: '14px', color: '#7A6F62', fontWeight: '500', fontSize: '14px', cursor: 'pointer' }}>
+            Abmelden
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const ProtectedRoute = ({ user, userData, maintenanceMode, maintenanceMessage, children }) => {
   if (!user) return <Navigate to="/login" replace />
   const isAdmin = user.email === ADMIN_EMAIL
@@ -109,6 +178,11 @@ const ProtectedRoute = ({ user, userData, maintenanceMode, maintenanceMessage, c
         </div>
       </div>
     )
+  }
+
+  // Terms acceptance gate — existing users who haven't accepted yet
+  if (!isAdmin && userData && !userData.acceptedTerms) {
+    return <TermsGate user={user} />
   }
 
   return (

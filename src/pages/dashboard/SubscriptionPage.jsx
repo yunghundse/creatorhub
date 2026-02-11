@@ -107,8 +107,9 @@ const SubscriptionPage = ({ userData }) => {
               <Shield size={26} color="#7EB5E6" />
             </div>
             <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#2A2420', margin: 0 }}>
+              <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#2A2420', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Free
+                <span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 10px', borderRadius: '8px', background: 'rgba(107,201,160,0.12)', color: '#6BC9A0' }}>BETA</span>
               </h3>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
                 <span style={{ fontSize: '24px', fontWeight: '800', color: '#7EB5E6' }}>0€</span>
@@ -297,7 +298,7 @@ const SubscriptionPage = ({ userData }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Shield size={14} color="#A89B8C" />
           <p style={{ fontSize: '12px', color: '#A89B8C', lineHeight: '1.5' }}>
-            Derzeit ist nur der kostenlose Plan verfügbar. Sobald Premium startet, wirst du hier benachrichtigt.
+            creatorhub befindet sich in der Beta-Phase. Alle Features sind kostenlos. Max. 10 Manager mit je 1 Model. Premium-Pläne kommen bald.
           </p>
         </div>
       </Card>

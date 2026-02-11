@@ -183,9 +183,9 @@ const DatenschutzPage = () => {
           <span>5. Drittanbieter</span>
         </div>
 
-        <p style={subHeadingStyle}>Stripe (Zahlungsabwicklung)</p>
+        <p style={subHeadingStyle}>Stripe (Zahlungsabwicklung — geplant)</p>
         <p style={textStyle}>
-          Fur die Abwicklung kostenpflichtiger Abonnements nutzen wir den Zahlungsdienstleister Stripe, Inc. (USA) bzw. Stripe Payments Europe, Ltd. (Irland).
+          CreatorHub befindet sich derzeit in der Beta-Phase und ist kostenlos nutzbar. Fur zukunftige kostenpflichtige Abonnements ist die Nutzung des Zahlungsdienstleisters Stripe, Inc. (USA) bzw. Stripe Payments Europe, Ltd. (Irland) geplant.
           Bei einer Zahlung werden Zahlungsdaten direkt an Stripe ubermittelt und dort verarbeitet. CreatorHub speichert keine vollstandigen Kreditkarten- oder Kontodaten.
           <br /><br />
           Stripe ist nach dem EU-US Data Privacy Framework zertifiziert. Weitere Informationen: stripe.com/privacy.
@@ -276,7 +276,7 @@ const DatenschutzPage = () => {
 
       {/* Footer */}
       <p style={{ textAlign: 'center', fontSize: '12px', color: '#C4B8A8', marginTop: '20px', marginBottom: '8px' }}>
-        Stand: Februar 2025
+        Stand: Februar 2026 — Beta
       </p>
     </div>
   )
