@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Sparkles, UserPlus, Briefcase, Camera } from 'lucide-react'
 import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, updateProfile } from 'firebase/auth'
-import { doc, setDoc, getDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, getDocs, collection, query, where, serverTimestamp, } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../firebase'
 import Button from '../components/Button'
 
@@ -51,14 +51,19 @@ const Register = () => {
     if (password.length < 6) { setError('Passwort muss mindestens 6 Zeichen haben.'); return }
     setLoading(true)
     try {
-      // Beta limit: max 10 managers
+      // Beta limit: check from Firestore settings
       if (selectedRole === 'manager') {
-        const managerQ = query(collection(db, 'users'), where('role', '==', 'manager'))
-        const managerSnap = await getDocs(managerQ)
-        if (managerSnap.size >= 10) {
-          setError('Beta-Limit erreicht: Es können derzeit nur 10 Manager registriert werden. Bitte versuche es später erneut.')
-          setLoading(false)
-          return
+        const betaSnap = await getDoc(doc(db, 'settings', 'beta'))
+        const betaEnabled = betaSnap.exists() ? betaSnap.data().enabled !== false : true
+        const maxManagers = betaSnap.exists() ? (betaSnap.data().maxManagers || 10) : 10
+        if (betaEnabled) {
+          const managerQ = query(collection(db, 'users'), where('role', '==', 'manager'))
+          const managerSnap = await getDocs(managerQ)
+          if (managerSnap.size >= maxManagers) {
+            setError(`Beta-Limit erreicht: Es können derzeit nur ${maxManagers} Manager registriert werden. Bitte versuche es später erneut.`)
+            setLoading(false)
+            return
+          }
         }
       }
       const cred = await createUserWithEmailAndPassword(auth, email, password)
@@ -79,14 +84,19 @@ const Register = () => {
     if (!acceptedTerms) { setError('Bitte stimme den AGB und Datenschutzbestimmungen zu.'); return }
     setLoading(true)
     try {
-      // Beta limit: max 10 managers
+      // Beta limit: check from Firestore settings
       if (selectedRole === 'manager') {
-        const managerQ = query(collection(db, 'users'), where('role', '==', 'manager'))
-        const managerSnap = await getDocs(managerQ)
-        if (managerSnap.size >= 10) {
-          setError('Beta-Limit erreicht: Es können derzeit nur 10 Manager registriert werden.')
-          setLoading(false)
-          return
+        const betaSnap = await getDoc(doc(db, 'settings', 'beta'))
+        const betaEnabled = betaSnap.exists() ? betaSnap.data().enabled !== false : true
+        const maxManagers = betaSnap.exists() ? (betaSnap.data().maxManagers || 10) : 10
+        if (betaEnabled) {
+          const managerQ = query(collection(db, 'users'), where('role', '==', 'manager'))
+          const managerSnap = await getDocs(managerQ)
+          if (managerSnap.size >= maxManagers) {
+            setError(`Beta-Limit erreicht: Es können derzeit nur ${maxManagers} Manager registriert werden.`)
+            setLoading(false)
+            return
+          }
         }
       }
       // Use redirect on mobile/Vercel, popup on localhost

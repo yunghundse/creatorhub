@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from './firebase'
-import { Sparkles, Wrench, Shield } from 'lucide-react'
+import { Sparkles, Wrench, Shield, FileSignature } from 'lucide-react'
 
 import Layout from './components/Layout'
 import { CompanyProvider } from './contexts/CompanyContext'
@@ -132,6 +132,87 @@ const TermsGate = ({ user }) => {
   )
 }
 
+// NDA signing gate for users who accepted AGB but haven't signed NDA yet
+const NDAGate = ({ user }) => {
+  const [accepted, setAccepted] = React.useState(false)
+  const [fullName, setFullName] = React.useState(user?.displayName || '')
+  const [saving, setSaving] = React.useState(false)
+
+  const handleSign = async () => {
+    if (!accepted || !fullName.trim()) return
+    setSaving(true)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        acceptedNDA: true,
+        ndaSignedName: fullName.trim(),
+        ndaSignedAt: serverTimestamp(),
+      })
+      window.location.reload()
+    } catch (err) {
+      console.error('NDA sign error:', err)
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'linear-gradient(160deg, #FFFDF7 0%, #FFF3D6 30%, #FFE8B8 60%, #FFF9EB 100%)' }}>
+      <div style={{ width: '100%', maxWidth: '420px' }} className="animate-fade-in-up">
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{ width: '72px', height: '72px', background: 'linear-gradient(135deg, #9B8FE6, #7B6FD6)', borderRadius: '22px', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 30px rgba(155,143,230,0.3)' }}>
+            <FileSignature size={28} color="white" />
+          </div>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#2A2420', marginBottom: '8px' }}>Geheimhaltungsvereinbarung</h2>
+          <p style={{ color: '#7A6F62', fontSize: '14px', lineHeight: '1.5' }}>
+            Bitte unterschreibe die NDA, um creatorhub nutzen zu können.
+          </p>
+        </div>
+
+        <div style={{ background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.9)', borderRadius: '24px', padding: '28px', boxShadow: '0 8px 40px rgba(42,36,32,0.08)' }}>
+          <div style={{ background: 'rgba(42,36,32,0.03)', borderRadius: '14px', padding: '16px', marginBottom: '20px', maxHeight: '200px', overflowY: 'auto', fontSize: '13px', color: '#5C5349', lineHeight: '1.6' }}>
+            <p style={{ fontWeight: '600', marginBottom: '8px' }}>Zusammenfassung:</p>
+            <p>Diese Geheimhaltungsvereinbarung regelt den vertraulichen Umgang mit Informationen auf der Plattform CreatorHub. Alle Team-Inhalte, Content-Ideen, Strategien und Kundendaten sind streng vertraulich zu behandeln. Die Vereinbarung gilt für 24 Monate nach Nutzungsende.</p>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '13px', fontWeight: '600', color: '#5C5349', display: 'block', marginBottom: '6px' }}>Vollständiger Name</label>
+            <input
+              type="text" value={fullName} onChange={e => setFullName(e.target.value)}
+              placeholder="Vor- und Nachname"
+              style={{ width: '100%', padding: '12px 14px', background: 'rgba(42,36,32,0.03)', border: '1.5px solid #E8DFD3', borderRadius: '12px', color: '#2A2420', fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'start', gap: '10px', cursor: 'pointer', padding: '14px', background: accepted ? 'rgba(155,143,230,0.06)' : 'rgba(42,36,32,0.02)', borderRadius: '12px', border: accepted ? '1.5px solid rgba(155,143,230,0.3)' : '1.5px solid #E8DFD3', marginBottom: '20px', transition: 'all 0.2s' }}>
+            <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
+              style={{ width: '18px', height: '18px', accentColor: '#9B8FE6', marginTop: '2px', flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', color: '#5C5349', lineHeight: '1.5' }}>
+              Ich habe die <a href="/legal/nda" target="_blank" style={{ color: '#9B8FE6', fontWeight: '600', textDecoration: 'none' }}>Geheimhaltungsvereinbarung (NDA)</a> gelesen und stimme ihr zu.
+            </span>
+          </label>
+
+          <button onClick={handleSign} disabled={!accepted || !fullName.trim() || saving}
+            style={{
+              width: '100%', padding: '14px', border: 'none', borderRadius: '14px',
+              background: (accepted && fullName.trim()) ? 'linear-gradient(135deg, #9B8FE6, #7B6FD6)' : '#E8DFD3',
+              color: (accepted && fullName.trim()) ? 'white' : '#A89B8C', fontWeight: '600', fontSize: '15px',
+              cursor: (accepted && fullName.trim()) ? 'pointer' : 'default',
+              opacity: (accepted && fullName.trim()) ? 1 : 0.5,
+              boxShadow: (accepted && fullName.trim()) ? '0 4px 15px rgba(155,143,230,0.3)' : 'none',
+              transition: 'all 0.2s', marginBottom: '12px',
+            }}>
+            {saving ? 'Wird gespeichert...' : 'NDA unterschreiben & Weiter'}
+          </button>
+
+          <button onClick={() => auth.signOut()}
+            style={{ width: '100%', padding: '12px', background: 'none', border: '1.5px solid #E8DFD3', borderRadius: '14px', color: '#7A6F62', fontWeight: '500', fontSize: '14px', cursor: 'pointer' }}>
+            Abmelden
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const ProtectedRoute = ({ user, userData, maintenanceMode, maintenanceMessage, children }) => {
   if (!user) return <Navigate to="/login" replace />
   const isAdmin = user.email === ADMIN_EMAIL
@@ -183,6 +264,11 @@ const ProtectedRoute = ({ user, userData, maintenanceMode, maintenanceMessage, c
   // Terms acceptance gate — existing users who haven't accepted yet
   if (!isAdmin && userData && !userData.acceptedTerms) {
     return <TermsGate user={user} />
+  }
+
+  // NDA signing gate — after AGB but before app access
+  if (!isAdmin && userData && !userData.acceptedNDA) {
+    return <NDAGate user={user} />
   }
 
   return (

@@ -1,6 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ShieldCheck, Check, FileSignature, Calendar, User } from 'lucide-react'
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, db } from '../../firebase'
 import Card from '../../components/Card'
 import Button from '../../components/Button'
 
@@ -8,7 +10,8 @@ const NDAPage = () => {
   const navigate = useNavigate()
   const [accepted, setAccepted] = useState(false)
   const [fullName, setFullName] = useState('')
-  const [signed, setSigned] = useState(false)
+  const [signing, setSigning] = useState(false)
+  const [alreadySigned, setAlreadySigned] = useState(false)
   const [signedData, setSignedData] = useState(null)
 
   const today = new Date().toLocaleDateString('de-DE', {
@@ -17,13 +20,53 @@ const NDAPage = () => {
     year: 'numeric',
   })
 
-  const handleSign = () => {
+  // Check if already signed
+  useEffect(() => {
+    const checkNDA = async () => {
+      const user = auth.currentUser
+      if (!user) return
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid))
+        if (snap.exists() && snap.data().acceptedNDA) {
+          setAlreadySigned(true)
+          setSignedData({
+            name: snap.data().ndaSignedName || snap.data().displayName || '',
+            date: snap.data().ndaSignedAt?.toDate?.()
+              ? snap.data().ndaSignedAt.toDate().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+              : today,
+          })
+        } else {
+          // Pre-fill name
+          setFullName(snap.data()?.displayName || user.displayName || '')
+        }
+      } catch (err) {
+        console.error('NDA check error:', err)
+      }
+    }
+    checkNDA()
+  }, [])
+
+  const handleSign = async () => {
     if (!accepted || !fullName.trim()) return
-    setSignedData({
-      name: fullName.trim(),
-      date: today,
-    })
-    setSigned(true)
+    const user = auth.currentUser
+    if (!user) return
+
+    setSigning(true)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        acceptedNDA: true,
+        ndaSignedName: fullName.trim(),
+        ndaSignedAt: serverTimestamp(),
+      })
+      setSignedData({
+        name: fullName.trim(),
+        date: today,
+      })
+      setAlreadySigned(true)
+    } catch (err) {
+      console.error('NDA sign error:', err)
+    }
+    setSigning(false)
   }
 
   const sectionStyle = {
@@ -51,7 +94,7 @@ const NDAPage = () => {
     <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
-        <button onClick={() => navigate('/einstellungen')} style={{
+        <button onClick={() => navigate(-1)} style={{
           padding: '10px', background: 'rgba(42,36,32,0.04)', border: '1px solid rgba(232,223,211,0.6)',
           borderRadius: '12px', color: '#7A6F62', cursor: 'pointer', display: 'flex',
         }}>
@@ -71,10 +114,9 @@ const NDAPage = () => {
         </div>
       </div>
 
-      {signed && signedData ? (
+      {alreadySigned && signedData ? (
         /* Success State */
         <div>
-          {/* Success Card */}
           <Card style={{
             padding: '32px 24px', textAlign: 'center', marginBottom: '20px',
             background: 'linear-gradient(135deg, rgba(107,201,160,0.1), rgba(107,201,160,0.04))',
@@ -95,7 +137,6 @@ const NDAPage = () => {
               Die Geheimhaltungsvereinbarung wurde erfolgreich unterzeichnet
             </p>
 
-            {/* Signature Details */}
             <div style={{
               background: 'rgba(255,255,255,0.7)', borderRadius: '16px', padding: '20px',
               border: '1px solid rgba(232,223,211,0.5)',
@@ -127,16 +168,15 @@ const NDAPage = () => {
 
           <Button
             variant="secondary"
-            onClick={() => navigate('/einstellungen')}
+            onClick={() => navigate(-1)}
             style={{ width: '100%', padding: '14px' }}
           >
-            Zuruck zu den Einstellungen
+            Zuruck
           </Button>
         </div>
       ) : (
         /* NDA Content & Signing */
         <div>
-          {/* NDA Text */}
           <Card style={{ marginBottom: '20px', padding: '24px' }}>
             <h3 style={{ fontSize: '17px', fontWeight: '700', color: '#2A2420', marginBottom: '16px', textAlign: 'center' }}>
               Geheimhaltungsvereinbarung (NDA)
@@ -208,7 +248,6 @@ const NDAPage = () => {
               Digitale Unterschrift
             </h3>
 
-            {/* Checkbox */}
             <label style={{
               display: 'flex', alignItems: 'flex-start', gap: '12px',
               cursor: 'pointer', marginBottom: '18px',
@@ -230,7 +269,6 @@ const NDAPage = () => {
               </span>
             </label>
 
-            {/* Full Name Input */}
             <div style={{ marginBottom: '14px' }}>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#5C5349', display: 'block', marginBottom: '8px' }}>
                 Vollstandiger Name
@@ -244,7 +282,6 @@ const NDAPage = () => {
               />
             </div>
 
-            {/* Date Display */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '13px', fontWeight: '600', color: '#5C5349', display: 'block', marginBottom: '8px' }}>
                 Datum
@@ -260,18 +297,16 @@ const NDAPage = () => {
               </div>
             </div>
 
-            {/* Sign Button */}
             <Button
               variant="primary"
               onClick={handleSign}
-              disabled={!accepted || !fullName.trim()}
+              disabled={!accepted || !fullName.trim() || signing}
               style={{ width: '100%', padding: '16px', fontSize: '15px' }}
             >
-              <FileSignature size={18} /> Digital unterschreiben
+              {signing ? 'Wird gespeichert...' : <><FileSignature size={18} /> Digital unterschreiben</>}
             </Button>
           </Card>
 
-          {/* Info Note */}
           <Card style={{
             padding: '14px 16px',
             background: 'rgba(245,197,99,0.04)', border: '1px solid rgba(245,197,99,0.15)',

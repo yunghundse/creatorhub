@@ -24,6 +24,7 @@ const TABS = [
   { id: 'revenue', icon: DollarSign, label: 'Umsatz' },
   { id: 'stats', icon: Server, label: 'System' },
   { id: 'maintenance', icon: Wrench, label: 'Wartung' },
+  { id: 'legal', icon: Shield, label: 'Legal' },
 ]
 
 // ===== DEMO REVENUE DATA =====
@@ -53,6 +54,8 @@ const Admin = ({ user }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [maintenanceMessage, setMaintenanceMessage] = useState('Die App wird gerade gewartet. Bitte versuche es später erneut.')
+  const [betaMode, setBetaMode] = useState(true)
+  const [betaMaxManagers, setBetaMaxManagers] = useState(10)
 
   const isAdmin = user?.email === ADMIN_EMAIL
 
@@ -82,10 +85,24 @@ const Admin = ({ user }) => {
     }
   }
 
+  // Load beta status
+  const loadBetaStatus = async () => {
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'beta'))
+      if (snap.exists()) {
+        setBetaMode(snap.data().enabled !== false) // default true
+        setBetaMaxManagers(snap.data().maxManagers || 10)
+      }
+    } catch (err) {
+      console.error('Error loading beta status:', err)
+    }
+  }
+
   useEffect(() => {
     if (!isAdmin) return
     loadUsers()
     loadMaintenanceStatus()
+    loadBetaStatus()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin])
 
@@ -146,6 +163,27 @@ const Admin = ({ user }) => {
     await setDoc(doc(db, 'settings', 'maintenance'), {
       enabled: maintenanceMode,
       message: maintenanceMessage,
+      updatedAt: serverTimestamp(),
+      updatedBy: user.email,
+    })
+  }
+
+  // Beta toggle
+  const toggleBeta = async () => {
+    const newState = !betaMode
+    setBetaMode(newState)
+    await setDoc(doc(db, 'settings', 'beta'), {
+      enabled: newState,
+      maxManagers: betaMaxManagers,
+      updatedAt: serverTimestamp(),
+      updatedBy: user.email,
+    })
+  }
+
+  const saveBetaSettings = async () => {
+    await setDoc(doc(db, 'settings', 'beta'), {
+      enabled: betaMode,
+      maxManagers: betaMaxManagers,
       updatedAt: serverTimestamp(),
       updatedBy: user.email,
     })
@@ -673,6 +711,158 @@ const Admin = ({ user }) => {
     </div>
   )
 
+  // ===== RENDER LEGAL / BETA =====
+  const renderLegal = () => {
+    const managersCount = users.filter(u => u.role === 'manager').length
+    const usersWithTerms = users.filter(u => u.acceptedTerms)
+    const usersWithNDA = users.filter(u => u.acceptedNDA)
+    const usersWithoutTerms = users.filter(u => !u.acceptedTerms && u.role !== 'admin')
+    const usersWithoutNDA = users.filter(u => !u.acceptedNDA && u.role !== 'admin')
+
+    return (
+      <div className="animate-fade-in">
+        {/* Beta Toggle */}
+        <Card style={{
+          marginBottom: '20px',
+          background: betaMode
+            ? 'linear-gradient(135deg, rgba(107,201,160,0.06), rgba(107,201,160,0.02))'
+            : 'linear-gradient(135deg, rgba(42,36,32,0.04), rgba(42,36,32,0.02))',
+          border: `1px solid ${betaMode ? 'rgba(107,201,160,0.2)' : 'rgba(232,223,211,0.4)'}`,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontWeight: '700', color: '#2A2420', fontSize: '18px', marginBottom: '4px' }}>
+                Beta-Modus
+              </h3>
+              <p style={{ fontSize: '13px', color: '#7A6F62' }}>
+                {betaMode ? `Aktiv — Max. ${betaMaxManagers} Manager, kostenlos` : 'Deaktiviert — Normaler Betrieb'}
+              </p>
+            </div>
+            <button onClick={toggleBeta} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: betaMode ? '#6BC9A0' : '#A89B8C', transition: 'all 0.3s',
+            }}>
+              {betaMode ? <ToggleRight size={44} /> : <ToggleLeft size={44} />}
+            </button>
+          </div>
+
+          {betaMode && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#5C5349', whiteSpace: 'nowrap' }}>Max. Manager:</label>
+                <input
+                  type="number" value={betaMaxManagers} onChange={e => setBetaMaxManagers(parseInt(e.target.value) || 10)}
+                  min={1} max={100}
+                  style={{
+                    width: '80px', padding: '8px 12px', background: 'rgba(42,36,32,0.03)',
+                    border: '1.5px solid #E8DFD3', borderRadius: '10px', fontSize: '14px',
+                    fontWeight: '600', color: '#2A2420', textAlign: 'center', fontFamily: 'inherit',
+                  }}
+                />
+                <Button variant="cream" onClick={saveBetaSettings} style={{ padding: '8px 16px', fontSize: '13px' }}>
+                  Speichern
+                </Button>
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px',
+                background: 'rgba(107,201,160,0.06)', borderRadius: '10px',
+              }}>
+                <span style={{ fontSize: '12px', color: '#7A6F62' }}>Registrierte Manager:</span>
+                <span style={{ fontSize: '14px', fontWeight: '700', color: managersCount >= betaMaxManagers ? '#DC2626' : '#6BC9A0' }}>
+                  {managersCount} / {betaMaxManagers}
+                </span>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* AGB & NDA Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+          <Card style={{ background: 'linear-gradient(135deg, rgba(107,201,160,0.06), rgba(107,201,160,0.02))' }}>
+            <p style={{ fontSize: '12px', color: '#7A6F62', marginBottom: '4px' }}>AGB akzeptiert</p>
+            <p style={{ fontSize: '28px', fontWeight: '700', color: '#6BC9A0' }}>{usersWithTerms.length}</p>
+            <p style={{ fontSize: '12px', color: '#A89B8C' }}>von {users.length} Usern</p>
+          </Card>
+          <Card style={{ background: 'linear-gradient(135deg, rgba(155,143,230,0.06), rgba(155,143,230,0.02))' }}>
+            <p style={{ fontSize: '12px', color: '#7A6F62', marginBottom: '4px' }}>NDA unterschrieben</p>
+            <p style={{ fontSize: '28px', fontWeight: '700', color: '#9B8FE6' }}>{usersWithNDA.length}</p>
+            <p style={{ fontSize: '12px', color: '#A89B8C' }}>von {users.length} Usern</p>
+          </Card>
+        </div>
+
+        {/* Users without AGB */}
+        {usersWithoutTerms.length > 0 && (
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#DC2626', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={16} /> AGB nicht akzeptiert ({usersWithoutTerms.length})
+            </h3>
+            {usersWithoutTerms.slice(0, 5).map(u => (
+              <Card key={u.id} style={{ marginBottom: '6px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #FFE8B8, #FFDDA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '700', color: '#5C5349' }}>
+                  {(u.displayName || u.email || '?').charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#2A2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.displayName || 'Kein Name'}</p>
+                  <p style={{ fontSize: '11px', color: '#A89B8C' }}>{u.email} • {u.role}</p>
+                </div>
+                <span style={{ fontSize: '10px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px', background: 'rgba(220,38,38,0.08)', color: '#DC2626' }}>Fehlt</span>
+              </Card>
+            ))}
+            {usersWithoutTerms.length > 5 && <p style={{ fontSize: '12px', color: '#A89B8C', textAlign: 'center', marginTop: '6px' }}>+ {usersWithoutTerms.length - 5} weitere</p>}
+          </div>
+        )}
+
+        {/* Users without NDA */}
+        {usersWithoutNDA.length > 0 && (
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#F5C563', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={16} /> NDA nicht unterschrieben ({usersWithoutNDA.length})
+            </h3>
+            {usersWithoutNDA.slice(0, 5).map(u => (
+              <Card key={u.id} style={{ marginBottom: '6px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #FFE8B8, #FFDDA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '700', color: '#5C5349' }}>
+                  {(u.displayName || u.email || '?').charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#2A2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.displayName || 'Kein Name'}</p>
+                  <p style={{ fontSize: '11px', color: '#A89B8C' }}>{u.email} • {u.role}</p>
+                </div>
+                <span style={{ fontSize: '10px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px', background: 'rgba(245,197,99,0.1)', color: '#F5C563' }}>Fehlt</span>
+              </Card>
+            ))}
+            {usersWithoutNDA.length > 5 && <p style={{ fontSize: '12px', color: '#A89B8C', textAlign: 'center', marginTop: '6px' }}>+ {usersWithoutNDA.length - 5} weitere</p>}
+          </div>
+        )}
+
+        {/* All users who completed everything */}
+        <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#6BC9A0', marginBottom: '10px' }}>
+          Vollständig bestätigt
+        </h3>
+        {users.filter(u => u.acceptedTerms && u.acceptedNDA).length === 0 ? (
+          <Card style={{ textAlign: 'center', padding: '30px', color: '#A89B8C', fontSize: '14px' }}>
+            Noch kein User hat alles bestätigt
+          </Card>
+        ) : (
+          users.filter(u => u.acceptedTerms && u.acceptedNDA).map(u => (
+            <Card key={u.id} style={{ marginBottom: '6px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #6BC9A0, #4DAA82)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '700', color: 'white' }}>
+                {(u.displayName || u.email || '?').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '13px', fontWeight: '600', color: '#2A2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.displayName || 'Kein Name'}</p>
+                <p style={{ fontSize: '11px', color: '#A89B8C' }}>{u.email} • {u.role}</p>
+              </div>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <span style={{ fontSize: '10px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px', background: 'rgba(107,201,160,0.1)', color: '#6BC9A0' }}>AGB</span>
+                <span style={{ fontSize: '10px', fontWeight: '600', padding: '3px 8px', borderRadius: '6px', background: 'rgba(155,143,230,0.1)', color: '#9B8FE6' }}>NDA</span>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+    )
+  }
+
   return (
     <div>
       {/* Admin Header */}
@@ -827,7 +1017,7 @@ const Admin = ({ user }) => {
               <span style={{ fontWeight: '600', color: '#2A2420', fontSize: '14px' }}>App-Info</span>
             </div>
             {[
-              { label: 'Version', value: 'v6.0' },
+              { label: 'Version', value: 'v8.1 Beta' },
               { label: 'Build', value: 'Production' },
               { label: 'Framework', value: 'React 19 + Vite 7' },
               { label: 'Database', value: 'Firebase Firestore' },
@@ -849,6 +1039,7 @@ const Admin = ({ user }) => {
         </div>
       )}
       {activeTab === 'maintenance' && renderMaintenance()}
+      {activeTab === 'legal' && renderLegal()}
     </div>
   )
 }
