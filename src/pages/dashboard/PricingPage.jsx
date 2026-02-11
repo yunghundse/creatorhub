@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Crown, Check, Star, Zap, Users, Shield, TrendingUp, Sparkles, ArrowLeft, Loader } from 'lucide-react'
+import { Crown, Check, Star, Zap, Users, Shield, TrendingUp, Sparkles, ArrowLeft, Loader, CreditCard, AlertTriangle, Lock, Brain, Repeat, Inbox, Pencil, UserCheck, GitBranch, FileText, Receipt, Stamp } from 'lucide-react'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import Card from '../../components/Card'
@@ -26,9 +26,11 @@ const PLANS = [
       'Revenue Split Tracker',
       'Brand Deal CRM',
       'Audit Logs',
-      'Prioritäts-Support',
-      'Custom Branding',
+      'Premium AI-Tools',
+      'Tax-Ready Export',
+      'In-App Invoicing',
     ],
+    premiumAccess: false,
   },
   {
     id: 'pro',
@@ -51,11 +53,18 @@ const PLANS = [
       'Audit Logs',
       'Deadline Timer',
       'Asset Library',
+      'Tax-Ready Export',
     ],
     missing: [
-      'Custom Branding',
-      'API-Zugang',
+      'AI Viral Predictor',
+      'Auto-Repurposing',
+      'Smart Inbox',
+      'Ghost-Mode',
+      'In-App Invoicing',
     ],
+    premiumAccess: 'partial',
+    // Stripe Price ID — hier echte ID eintragen
+    stripePriceId: 'price_pro_monthly',
   },
   {
     id: 'business',
@@ -69,15 +78,33 @@ const PLANS = [
     features: [
       '10 Teammitglieder',
       'Alle Pro Features',
+      'AI Viral Predictor',
+      'Auto-Repurposing Planer',
+      'Smart Inbox Tagging',
+      'Ghost-Mode für Manager',
+      'Asset Versioning',
+      'Visual Annotations',
+      'In-App Invoicing',
+      'Watermark Generator',
       'Prioritäts-Support',
-      'Custom Branding',
       'API-Zugang',
-      'Erweiterte Exports',
-      'Multi-Team Support',
-      'Dedizierter Account Manager',
     ],
     missing: [],
+    premiumAccess: 'full',
+    stripePriceId: 'price_business_monthly',
   },
+]
+
+const PREMIUM_FEATURES = [
+  { icon: Brain, name: 'Viral Predictor', plan: 'business', desc: 'KI-Score für Viralität' },
+  { icon: Repeat, name: 'Auto-Repurposing', plan: 'business', desc: 'YouTube → TikTok + IG' },
+  { icon: Inbox, name: 'Smart Inbox', plan: 'business', desc: 'KI-Nachrichten-Sortierung' },
+  { icon: FileText, name: 'Tax Export', plan: 'pro', desc: 'Steuer-CSV auf einen Klick' },
+  { icon: Receipt, name: 'Invoicing', plan: 'business', desc: 'Rechnungen direkt erstellen' },
+  { icon: Pencil, name: 'Annotations', plan: 'business', desc: 'Markierungen auf Medien' },
+  { icon: UserCheck, name: 'Ghost-Mode', plan: 'business', desc: 'Manager-Account-Zugriff' },
+  { icon: GitBranch, name: 'Versioning', plan: 'business', desc: 'Edit-Versionen vergleichen' },
+  { icon: Stamp, name: 'Watermark', plan: 'business', desc: 'Auto-Wasserzeichen' },
 ]
 
 const PricingPage = ({ userData }) => {
@@ -85,6 +112,8 @@ const PricingPage = ({ userData }) => {
   const [currentAbo, setCurrentAbo] = useState('free')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(null)
+  const [paymentStep, setPaymentStep] = useState('select') // select, processing, done
 
   const resolvedCompanyId = userData?.companyId || null
 
@@ -95,24 +124,52 @@ const PricingPage = ({ userData }) => {
     }).catch(() => {})
   }, [resolvedCompanyId])
 
-  const selectPlan = async (planId) => {
+  const startCheckout = (planId) => {
     if (planId === currentAbo) return
     if (!resolvedCompanyId) {
       navigate('/dashboard/company')
       return
     }
+    if (planId === 'free') {
+      // Downgrade to free
+      selectPlan(planId)
+      return
+    }
+    // Show payment modal
+    setShowPaymentModal(planId)
+    setPaymentStep('select')
+  }
 
-    setLoading(planId)
+  const processPayment = async () => {
+    const planId = showPaymentModal
+    setPaymentStep('processing')
 
-    // In einer echten App würde hier Stripe Checkout gestartet werden:
+    // In production: redirect to Stripe Checkout
     // const response = await fetch('/api/create-checkout-session', {
     //   method: 'POST',
-    //   body: JSON.stringify({ priceId: STRIPE_PRICES[planId], companyId: resolvedCompanyId }),
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({
+    //     priceId: PLANS.find(p => p.id === planId).stripePriceId,
+    //     companyId: resolvedCompanyId,
+    //     successUrl: window.location.origin + '/dashboard/pricing?success=true',
+    //     cancelUrl: window.location.origin + '/dashboard/pricing?canceled=true',
+    //   }),
     // })
     // const { url } = await response.json()
     // window.location.href = url
 
-    // Für jetzt: Direkt in Firestore updaten (Demo-Modus)
+    // Demo-Modus: Simuliere Zahlung (2 Sekunden)
+    await new Promise(r => setTimeout(r, 2000))
+    await selectPlan(planId)
+    setPaymentStep('done')
+    setTimeout(() => {
+      setShowPaymentModal(null)
+      setPaymentStep('select')
+    }, 2000)
+  }
+
+  const selectPlan = async (planId) => {
+    setLoading(planId)
     try {
       await updateDoc(doc(db, 'companies', resolvedCompanyId), { abo: planId })
       setCurrentAbo(planId)
@@ -124,8 +181,127 @@ const PricingPage = ({ userData }) => {
     setLoading(false)
   }
 
+  const selectedPlan = PLANS.find(p => p.id === showPaymentModal)
+
   return (
     <div>
+      {/* Payment Modal */}
+      {showPaymentModal && selectedPlan && (
+        <>
+          <div onClick={() => { if (paymentStep === 'select') setShowPaymentModal(null) }} style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
+            zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: '#FFFDF7', borderRadius: '22px', padding: '28px',
+              width: '100%', maxWidth: '380px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+            }}>
+              {paymentStep === 'select' && (
+                <>
+                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <div style={{
+                      width: '56px', height: '56px', borderRadius: '18px',
+                      background: `linear-gradient(135deg, ${selectedPlan.color}cc, ${selectedPlan.color})`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      margin: '0 auto 12px', boxShadow: `0 8px 24px ${selectedPlan.color}30`,
+                    }}>
+                      <CreditCard size={24} color="white" />
+                    </div>
+                    <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#2A2420' }}>
+                      Upgrade auf {selectedPlan.name}
+                    </h3>
+                    <p style={{ fontSize: '14px', color: '#A89B8C', marginTop: '4px' }}>
+                      {selectedPlan.price}€ {selectedPlan.period}
+                    </p>
+                  </div>
+
+                  {/* Plan summary */}
+                  <Card style={{ padding: '14px', marginBottom: '16px', background: `${selectedPlan.color}06`, border: `1px solid ${selectedPlan.color}15` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '13px', color: '#7A6F62' }}>{selectedPlan.name} Plan</span>
+                      <span style={{ fontSize: '15px', fontWeight: '700', color: '#2A2420' }}>{selectedPlan.price}€/Monat</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid rgba(232,223,211,0.3)' }}>
+                      <span style={{ fontSize: '12px', color: '#A89B8C' }}>Teammitglieder</span>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: selectedPlan.color }}>bis zu {selectedPlan.slots}</span>
+                    </div>
+                  </Card>
+
+                  {/* Payment method info */}
+                  <div style={{
+                    padding: '14px', borderRadius: '12px', marginBottom: '16px',
+                    background: 'rgba(245,197,99,0.06)', border: '1px solid rgba(245,197,99,0.15)',
+                    display: 'flex', gap: '10px', alignItems: 'flex-start',
+                  }}>
+                    <Lock size={16} color="#E8A940" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <p style={{ fontSize: '12px', color: '#7A6F62', lineHeight: '1.5' }}>
+                      Sichere Zahlung über Stripe. Du wirst zur Stripe-Checkout-Seite weitergeleitet. Jederzeit monatlich kündbar.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={() => setShowPaymentModal(null)} style={{
+                      flex: 1, padding: '14px', borderRadius: '14px', border: '1px solid #E8DFD3',
+                      background: 'transparent', color: '#7A6F62', fontWeight: '600', fontSize: '14px',
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}>Abbrechen</button>
+                    <button onClick={processPayment} style={{
+                      flex: 2, padding: '14px', borderRadius: '14px', border: 'none',
+                      background: `linear-gradient(135deg, ${selectedPlan.color}cc, ${selectedPlan.color})`,
+                      color: 'white', fontWeight: '700', fontSize: '14px',
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      boxShadow: `0 4px 16px ${selectedPlan.color}30`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    }}>
+                      <CreditCard size={16} /> Jetzt bezahlen
+                    </button>
+                  </div>
+
+                  <p style={{ textAlign: 'center', fontSize: '11px', color: '#C4B8A8', marginTop: '12px' }}>
+                    Demo-Modus: Zahlung wird simuliert
+                  </p>
+                </>
+              )}
+
+              {paymentStep === 'processing' && (
+                <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                  <div className="animate-float" style={{
+                    width: '64px', height: '64px', borderRadius: '20px',
+                    background: `linear-gradient(135deg, ${selectedPlan.color}cc, ${selectedPlan.color})`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 16px', boxShadow: `0 8px 30px ${selectedPlan.color}30`,
+                  }}>
+                    <Loader size={28} color="white" className="animate-spin" />
+                  </div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#2A2420', marginBottom: '6px' }}>Zahlung wird verarbeitet...</h3>
+                  <p style={{ fontSize: '13px', color: '#A89B8C' }}>Bitte warte einen Moment.</p>
+                </div>
+              )}
+
+              {paymentStep === 'done' && (
+                <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                  <div style={{
+                    width: '64px', height: '64px', borderRadius: '20px',
+                    background: 'linear-gradient(135deg, #6BC9A0, #4DAA82)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 16px', boxShadow: '0 8px 30px rgba(107,201,160,0.3)',
+                  }}>
+                    <Check size={28} color="white" />
+                  </div>
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#2A2420', marginBottom: '6px' }}>Upgrade erfolgreich!</h3>
+                  <p style={{ fontSize: '13px', color: '#6BC9A0', fontWeight: '600' }}>
+                    Willkommen beim {selectedPlan.name}-Plan!
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '28px' }}>
         <button onClick={() => navigate(-1)} style={{
@@ -187,7 +363,7 @@ const PricingPage = ({ userData }) => {
               boxShadow: plan.highlight ? `0 8px 30px ${plan.color}15` : 'none',
             }}>
               {/* Popular Badge */}
-              {plan.popular && (
+              {plan.popular && !isCurrent && (
                 <div style={{
                   position: 'absolute', top: '12px', right: '12px',
                   padding: '4px 10px', borderRadius: '8px',
@@ -235,6 +411,21 @@ const PricingPage = ({ userData }) => {
                   </span>
                 </div>
 
+                {/* Premium Access Badge */}
+                {plan.premiumAccess && (
+                  <div style={{
+                    padding: '8px 12px', borderRadius: '10px', marginBottom: '12px',
+                    background: plan.premiumAccess === 'full' ? 'rgba(155,143,230,0.08)' : 'rgba(245,197,99,0.06)',
+                    border: `1px solid ${plan.premiumAccess === 'full' ? 'rgba(155,143,230,0.15)' : 'rgba(245,197,99,0.15)'}`,
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                  }}>
+                    <Sparkles size={14} color={plan.premiumAccess === 'full' ? '#9B8FE6' : '#F5C563'} />
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: plan.premiumAccess === 'full' ? '#9B8FE6' : '#E8A940' }}>
+                      {plan.premiumAccess === 'full' ? 'Alle Premium-Features inkl.' : 'Basis Premium-Features inkl.'}
+                    </span>
+                  </div>
+                )}
+
                 {/* Features */}
                 <div style={{ marginBottom: '16px' }}>
                   {plan.features.map((f, i) => (
@@ -253,7 +444,7 @@ const PricingPage = ({ userData }) => {
 
                 {/* CTA Button */}
                 <button
-                  onClick={() => selectPlan(plan.id)}
+                  onClick={() => startCheckout(plan.id)}
                   disabled={isCurrent || loading === plan.id}
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
@@ -277,8 +468,10 @@ const PricingPage = ({ userData }) => {
                     <><Check size={16} /> Aktueller Plan</>
                   ) : isDowngrade ? (
                     <>Downgraden</>
+                  ) : plan.price === '0' ? (
+                    <><Star size={16} /> Gratis starten</>
                   ) : (
-                    <><TrendingUp size={16} /> {plan.price === '0' ? 'Gratis starten' : `Auf ${plan.name} upgraden`}</>
+                    <><CreditCard size={16} /> {plan.name} für {plan.price}€/Monat</>
                   )}
                 </button>
               </div>
@@ -287,14 +480,45 @@ const PricingPage = ({ userData }) => {
         })}
       </div>
 
+      {/* Premium Feature Comparison */}
+      <div style={{ marginTop: '24px', marginBottom: '16px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#2A2420', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles size={16} color="#9B8FE6" /> Premium-Features im Detail
+        </h3>
+        {PREMIUM_FEATURES.map((f, i) => {
+          const FIcon = f.icon
+          const unlocked = (f.plan === 'pro' && ['pro', 'business'].includes(currentAbo)) || (f.plan === 'business' && currentAbo === 'business')
+          return (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
+              borderRadius: '10px', marginBottom: '4px',
+              background: unlocked ? 'rgba(107,201,160,0.04)' : 'transparent',
+            }}>
+              <FIcon size={16} color={unlocked ? '#6BC9A0' : '#C4B8A8'} />
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: '13px', fontWeight: '500', color: unlocked ? '#2A2420' : '#A89B8C' }}>{f.name}</span>
+                <span style={{ fontSize: '11px', color: '#A89B8C', marginLeft: '8px' }}>{f.desc}</span>
+              </div>
+              <span style={{
+                fontSize: '10px', padding: '2px 8px', borderRadius: '6px', fontWeight: '600', textTransform: 'capitalize',
+                background: unlocked ? 'rgba(107,201,160,0.1)' : `rgba(${f.plan === 'pro' ? '245,197,99' : '255,107,157'},0.08)`,
+                color: unlocked ? '#6BC9A0' : f.plan === 'pro' ? '#E8A940' : '#FF6B9D',
+              }}>
+                {unlocked ? 'Aktiv' : f.plan}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
       {/* Info Footer */}
-      <div style={{ textAlign: 'center', marginTop: '24px', padding: '16px' }}>
+      <div style={{ textAlign: 'center', marginTop: '20px', padding: '16px' }}>
         <p style={{ fontSize: '12px', color: '#A89B8C', lineHeight: '1.6' }}>
           Alle Pläne sind monatlich kündbar. Kein Vertrag, keine versteckten Kosten.
           Bei einem Downgrade behältst du den Plan bis zum Ende der Abrechnungsperiode.
         </p>
         <p style={{ fontSize: '11px', color: '#C4B8A8', marginTop: '8px' }}>
-          Stripe-Integration wird bei Produktions-Launch aktiviert.
+          Zahlung wird sicher über Stripe abgewickelt. Demo-Modus aktiv.
         </p>
       </div>
     </div>

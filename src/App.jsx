@@ -29,8 +29,31 @@ import BrandDealsPage from './pages/dashboard/BrandDealsPage'
 import AuditLogPage from './pages/dashboard/AuditLogPage'
 import DeadlinesPage from './pages/dashboard/DeadlinesPage'
 import PricingPage from './pages/dashboard/PricingPage'
+import SubscriptionPage from './pages/dashboard/SubscriptionPage'
 import OnboardingPage from './pages/OnboardingPage'
 import FYPPage from './pages/FYPPage'
+
+// Premium pages
+import PremiumPage from './pages/dashboard/PremiumPage'
+import ViralPredictorPage from './pages/premium/ViralPredictorPage'
+import RepurposingPage from './pages/premium/RepurposingPage'
+import SmartInboxPage from './pages/premium/SmartInboxPage'
+import TaxExportPage from './pages/premium/TaxExportPage'
+import InvoicingPage from './pages/premium/InvoicingPage'
+import WatermarkPage from './pages/premium/WatermarkPage'
+import VersioningPage from './pages/premium/VersioningPage'
+import AnnotationsPage from './pages/premium/AnnotationsPage'
+import GhostModePage from './pages/premium/GhostModePage'
+import CaptionWriterPage from './pages/premium/CaptionWriterPage'
+
+// Legal pages
+import ImpressumPage from './pages/legal/ImpressumPage'
+import AGBPage from './pages/legal/AGBPage'
+import DatenschutzPage from './pages/legal/DatenschutzPage'
+import NDAPage from './pages/legal/NDAPage'
+
+// Settings sub-pages
+import SessionsPage from './pages/settings/SessionsPage'
 
 const ADMIN_EMAIL = 'yunghundse@gmail.com'
 
@@ -157,10 +180,19 @@ function App() {
       <Route path="/finanzen" element={<ProtectedRoute {...pp}><Finance /></ProtectedRoute>} />
       <Route path="/kalender" element={<ProtectedRoute {...pp}><CalendarPage /></ProtectedRoute>} />
       <Route path="/chat" element={<ProtectedRoute {...pp}><Chat /></ProtectedRoute>} />
-      <Route path="/einstellungen" element={<ProtectedRoute {...pp}><SettingsPage user={user} /></ProtectedRoute>} />
+      <Route path="/einstellungen" element={<ProtectedRoute {...pp}><SettingsPage user={user} userData={userData} /></ProtectedRoute>} />
       <Route path="/onboarding" element={<ProtectedRoute {...pp}><OnboardingPage userData={userData} /></ProtectedRoute>} />
       <Route path="/fyp" element={<ProtectedRoute {...pp}><FYPPage userData={userData} /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute {...pp}><Admin user={user} /></ProtectedRoute>} />
+
+      {/* Settings sub-routes */}
+      <Route path="/einstellungen/sessions" element={<ProtectedRoute {...pp}><SessionsPage /></ProtectedRoute>} />
+
+      {/* Legal routes — accessible to all authenticated users */}
+      <Route path="/legal/impressum" element={<ProtectedRoute {...pp}><ImpressumPage /></ProtectedRoute>} />
+      <Route path="/legal/agb" element={<ProtectedRoute {...pp}><AGBPage /></ProtectedRoute>} />
+      <Route path="/legal/datenschutz" element={<ProtectedRoute {...pp}><DatenschutzPage /></ProtectedRoute>} />
+      <Route path="/legal/nda" element={<ProtectedRoute {...pp}><NDAPage /></ProtectedRoute>} />
 
       {/* Dashboard routes — role-gated */}
       <Route path="/dashboard/company" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><CompanyPage /></RoleGuard></ProtectedRoute>} />
@@ -176,7 +208,21 @@ function App() {
       <Route path="/dashboard/brand-deals" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><BrandDealsPage userData={userData} /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/audit-log" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><AuditLogPage userData={userData} /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/deadlines" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['influencer', 'cutter']}><DeadlinesPage userData={userData} /></RoleGuard></ProtectedRoute>} />
-      <Route path="/dashboard/pricing" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><PricingPage userData={userData} /></RoleGuard></ProtectedRoute>} />
+      <Route path="/dashboard/pricing" element={<ProtectedRoute {...pp}><PricingPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/dashboard/subscription" element={<ProtectedRoute {...pp}><SubscriptionPage userData={userData} /></ProtectedRoute>} />
+
+      {/* Premium Feature routes — accessible to all authenticated users */}
+      <Route path="/premium" element={<ProtectedRoute {...pp}><PremiumPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/viral-predictor" element={<ProtectedRoute {...pp}><ViralPredictorPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/repurposing" element={<ProtectedRoute {...pp}><RepurposingPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/smart-inbox" element={<ProtectedRoute {...pp}><SmartInboxPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/tax-export" element={<ProtectedRoute {...pp}><TaxExportPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/invoicing" element={<ProtectedRoute {...pp}><InvoicingPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/watermark" element={<ProtectedRoute {...pp}><WatermarkPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/versioning" element={<ProtectedRoute {...pp}><VersioningPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/annotations" element={<ProtectedRoute {...pp}><AnnotationsPage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/ghost-mode" element={<ProtectedRoute {...pp}><GhostModePage userData={userData} /></ProtectedRoute>} />
+      <Route path="/premium/caption-writer" element={<ProtectedRoute {...pp}><CaptionWriterPage userData={userData} /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

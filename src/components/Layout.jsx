@@ -5,10 +5,11 @@ import {
   Sparkles, Settings, Shield, Building2, Users,
   BarChart3, Upload, Video, Scissors, TrendingUp,
   ListTodo, Menu, X, DollarSign, CheckCircle,
-  Briefcase, FileText, Timer, Layers, HelpCircle, Flame
+  Briefcase, FileText, Timer, Layers, HelpCircle, Flame, Crown
 } from 'lucide-react'
 import { db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
+import NotificationBell from './NotificationBell'
 
 const ADMIN_EMAIL = 'yunghundse@gmail.com'
 
@@ -16,6 +17,7 @@ const ADMIN_EMAIL = 'yunghundse@gmail.com'
 const ROLE_NAV = {
   admin: [
     { path: '/', icon: Home, label: 'Home' },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
     { path: '/dashboard/audit-log', icon: FileText, label: 'Audit' },
@@ -28,6 +30,7 @@ const ROLE_NAV = {
   ],
   manager: [
     { path: '/', icon: Home, label: 'Home' },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/company', icon: Building2, label: 'Firma' },
     { path: '/dashboard/approvals', icon: CheckCircle, label: 'Freigaben' },
     { path: '/dashboard/revenue', icon: DollarSign, label: 'Revenue' },
@@ -42,6 +45,7 @@ const ROLE_NAV = {
   ],
   model: [
     { path: '/', icon: Home, label: 'Home' },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/approvals', icon: CheckCircle, label: 'Freigaben' },
     { path: '/dashboard/schedule', icon: Calendar, label: 'Kalender' },
     { path: '/dashboard/assets', icon: Upload, label: 'Assets' },
@@ -52,6 +56,7 @@ const ROLE_NAV = {
   ],
   influencer: [
     { path: '/', icon: Home, label: 'Home' },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/collab', icon: ListTodo, label: 'Collab' },
     { path: '/dashboard/deadlines', icon: Timer, label: 'Deadlines' },
     { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
@@ -65,6 +70,7 @@ const ROLE_NAV = {
   ],
   cutter: [
     { path: '/', icon: Home, label: 'Home' },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/collab', icon: ListTodo, label: 'Aufträge' },
     { path: '/dashboard/deadlines', icon: Timer, label: 'Deadlines' },
     { path: '/dashboard/asset-library', icon: Layers, label: 'Library' },
@@ -149,6 +155,8 @@ const Layout = ({ children, user, userData }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Notification Bell */}
+            <NotificationBell />
             {/* Status Badge — oben rechts */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '6px',

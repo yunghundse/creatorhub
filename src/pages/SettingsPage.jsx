@@ -1,13 +1,15 @@
-import React, { useState } from 'react'
-import { LogOut, User, Shield, FileText, ChevronRight, Key, Trash2, AlertTriangle, X } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { LogOut, User, Shield, FileText, ChevronRight, Key, Trash2, AlertTriangle, X, Building2, Check, UserPlus, Monitor, CreditCard, Scale, FileCheck } from 'lucide-react'
 import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from 'firebase/auth'
-import { doc, deleteDoc } from 'firebase/firestore'
+import { doc, deleteDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 import Card from '../components/Card'
 import Button from '../components/Button'
 
-const SettingsPage = ({ user }) => {
-  const [view, setView] = useState('main') // main, security, legal
+const SettingsPage = ({ user, userData }) => {
+  const navigate = useNavigate()
+  const [view, setView] = useState('main') // main, security, legal, team
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [newPwConfirm, setNewPwConfirm] = useState('')
@@ -16,6 +18,24 @@ const SettingsPage = ({ user }) => {
   const [loading, setLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletePw, setDeletePw] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
+  const [joinError, setJoinError] = useState('')
+  const [joinSuccess, setJoinSuccess] = useState('')
+  const [joinLoading, setJoinLoading] = useState(false)
+  const [companyName, setCompanyName] = useState(null)
+
+  const userRole = userData?.role || 'influencer'
+  const hasCompany = !!userData?.companyId
+  // Models & Cutter können beitreten, Influencer & Manager gründen selbst
+  const canJoinCompany = ['model', 'cutter'].includes(userRole)
+
+  // Load current company name
+  useEffect(() => {
+    if (!userData?.companyId) return
+    getDoc(doc(db, 'companies', userData.companyId)).then(snap => {
+      if (snap.exists()) setCompanyName(snap.data().name)
+    }).catch(() => {})
+  }, [userData?.companyId])
 
   const isGoogleUser = user?.providerData?.[0]?.providerId === 'google.com'
 
@@ -49,9 +69,7 @@ const SettingsPage = ({ user }) => {
         const credential = EmailAuthProvider.credential(user.email, deletePw)
         await reauthenticateWithCredential(auth.currentUser, credential)
       }
-      // Delete Firestore user doc
       await deleteDoc(doc(db, 'users', user.uid))
-      // Delete Firebase Auth account
       await deleteUser(auth.currentUser)
     } catch (err) {
       console.error('Delete error:', err.code)
@@ -62,10 +80,185 @@ const SettingsPage = ({ user }) => {
     setLoading(false)
   }
 
+  const handleJoinCompany = async () => {
+    if (!inviteCode.trim()) { setJoinError('Bitte Einladungscode eingeben.'); return }
+    setJoinError(''); setJoinSuccess(''); setJoinLoading(true)
+
+    try {
+      // Find company by invite code
+      const q = query(collection(db, 'companies'), where('inviteCode', '==', inviteCode.trim().toUpperCase()))
+      const snap = await getDocs(q)
+
+      if (snap.empty) {
+        setJoinError('Ungültiger Einladungscode. Bitte prüfe den Code.')
+        setJoinLoading(false)
+        return
+      }
+
+      const companyDoc = snap.docs[0]
+      const companyData = companyDoc.data()
+      const companyId = companyDoc.id
+
+      // Check slot limits
+      const abo = companyData.abo || 'free'
+      const limits = { free: 1, pro: 5, business: 10 }
+      const maxSlots = limits[abo] || 1
+
+      const membersSnap = await getDocs(query(collection(db, 'users'), where('companyId', '==', companyId)))
+      const memberCount = membersSnap.docs.filter(d => d.id !== companyData.ownerId).length
+
+      if (memberCount >= maxSlots) {
+        setJoinError(`Team ist voll (${memberCount}/${maxSlots}). Der Manager muss das Abo upgraden.`)
+        setJoinLoading(false)
+        return
+      }
+
+      // Join the company
+      await updateDoc(doc(db, 'users', user.uid), { companyId })
+      setJoinSuccess(`Erfolgreich "${companyData.name}" beigetreten!`)
+      setCompanyName(companyData.name)
+      setInviteCode('')
+
+      // Reload after short delay
+      setTimeout(() => window.location.reload(), 1500)
+
+    } catch (err) {
+      console.error('Join error:', err)
+      setJoinError('Fehler beim Beitreten. Bitte versuche es erneut.')
+    }
+    setJoinLoading(false)
+  }
+
+  const handleLeaveCompany = async () => {
+    setError(''); setLoading(true)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { companyId: null })
+      setCompanyName(null)
+      setSuccess('Du hast die Firma verlassen.')
+      setTimeout(() => window.location.reload(), 1000)
+    } catch (err) {
+      console.error('Leave error:', err)
+      setError('Fehler beim Verlassen der Firma.')
+    }
+    setLoading(false)
+  }
+
   const inputStyle = {
     width: '100%', padding: '12px 14px', background: 'rgba(42,36,32,0.03)',
     border: '1.5px solid #E8DFD3', borderRadius: '12px', color: '#2A2420',
     fontSize: '14px', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+  }
+
+  // ===== TEAM / EINLADUNGSCODE =====
+  if (view === 'team') {
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <button onClick={() => { setView('main'); setJoinError(''); setJoinSuccess('') }} style={{ background: 'none', border: 'none', color: '#7A6F62', padding: '4px', cursor: 'pointer' }}>
+            <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} />
+          </button>
+          <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#2A2420' }}>Team & Firma</h2>
+        </div>
+
+        {/* Current Company Status */}
+        {hasCompany && companyName ? (
+          <Card style={{ marginBottom: '16px', padding: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '14px',
+                background: 'linear-gradient(135deg, rgba(107,201,160,0.15), rgba(107,201,160,0.08))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Building2 size={22} color="#6BC9A0" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: '600', color: '#2A2420', fontSize: '15px' }}>{companyName}</p>
+                <p style={{ fontSize: '12px', color: '#6BC9A0', fontWeight: '500' }}>Mitglied als {userRole}</p>
+              </div>
+              <Check size={20} color="#6BC9A0" />
+            </div>
+
+            {canJoinCompany && (
+              <button onClick={handleLeaveCompany} disabled={loading} style={{
+                width: '100%', padding: '11px', borderRadius: '12px',
+                border: '1.5px solid rgba(220,38,38,0.15)', background: 'rgba(220,38,38,0.04)',
+                color: '#DC2626', fontWeight: '600', fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit',
+                opacity: loading ? 0.5 : 1,
+              }}>
+                Firma verlassen
+              </button>
+            )}
+          </Card>
+        ) : canJoinCompany ? (
+          <>
+            {/* Join Company Form */}
+            <Card style={{ padding: '20px', marginBottom: '16px', border: '1.5px solid rgba(126,181,230,0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                <UserPlus size={18} color="#7EB5E6" />
+                <span style={{ fontWeight: '600', color: '#2A2420', fontSize: '15px' }}>Firma beitreten</span>
+              </div>
+              <p style={{ fontSize: '13px', color: '#7A6F62', marginBottom: '14px', lineHeight: '1.5' }}>
+                Gib den Einladungscode ein, den du von deinem Manager erhalten hast.
+              </p>
+
+              {joinError && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                  borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
+                  color: '#DC2626', fontSize: '13px', fontWeight: '500',
+                }}>{joinError}</div>
+              )}
+              {joinSuccess && (
+                <div style={{
+                  background: 'rgba(107,201,160,0.08)', border: '1px solid rgba(107,201,160,0.2)',
+                  borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
+                  color: '#059669', fontSize: '13px', fontWeight: '500',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                }}><Check size={16} /> {joinSuccess}</div>
+              )}
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '13px', fontWeight: '600', color: '#5C5349', display: 'block', marginBottom: '6px' }}>Einladungscode</label>
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={e => setInviteCode(e.target.value.toUpperCase())}
+                  placeholder="z.B. AB3XY2"
+                  maxLength={8}
+                  style={{
+                    ...inputStyle,
+                    fontSize: '18px', fontWeight: '700', letterSpacing: '3px',
+                    textAlign: 'center', fontFamily: 'monospace', textTransform: 'uppercase',
+                  }}
+                  onKeyDown={e => e.key === 'Enter' && handleJoinCompany()}
+                />
+              </div>
+
+              <Button variant="primary" onClick={handleJoinCompany} disabled={joinLoading || !inviteCode.trim()} style={{ width: '100%', padding: '13px' }}>
+                {joinLoading ? 'Wird geprüft...' : 'Firma beitreten'}
+              </Button>
+            </Card>
+
+            {/* Info */}
+            <Card style={{ padding: '16px', background: 'rgba(245,197,99,0.04)', border: '1px solid rgba(245,197,99,0.15)' }}>
+              <p style={{ fontSize: '12px', color: '#7A6F62', lineHeight: '1.6' }}>
+                <strong style={{ color: '#E8A940' }}>Wie bekomme ich einen Code?</strong><br />
+                Dein Manager erstellt eine Firma und erhält einen Einladungscode. Dieser wird dir per Chat oder direkt mitgeteilt. Nach dem Beitritt siehst du den gemeinsamen Kalender, Assets und mehr.
+              </p>
+            </Card>
+          </>
+        ) : (
+          <Card style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <Building2 size={36} color="#E8DFD3" style={{ marginBottom: '12px' }} />
+            <p style={{ color: '#7A6F62', fontSize: '14px', marginBottom: '4px' }}>
+              {['manager', 'influencer'].includes(userRole)
+                ? 'Als Manager/Influencer kannst du eine Firma über die Firma-Seite erstellen.'
+                : 'Du bist aktuell keiner Firma zugeordnet.'}
+            </p>
+          </Card>
+        )}
+      </div>
+    )
   }
 
   // ===== SICHERHEIT =====
@@ -157,6 +350,13 @@ const SettingsPage = ({ user }) => {
 
   // ===== RECHTLICHES =====
   if (view === 'legal') {
+    const legalItems = [
+      { title: 'Impressum', desc: 'Angaben gemäß § 5 TMG', icon: FileText, path: '/legal/impressum', color: '#7EB5E6' },
+      { title: 'AGB', desc: 'Allgemeine Geschäftsbedingungen', icon: Scale, path: '/legal/agb', color: '#F5C563' },
+      { title: 'Datenschutz', desc: 'DSGVO-konforme Datenschutzerklärung', icon: Shield, path: '/legal/datenschutz', color: '#6BC9A0' },
+      { title: 'NDA / Geheimhaltung', desc: 'Digitale Vertraulichkeitsvereinbarung', icon: FileCheck, path: '/legal/nda', color: '#9B8FE6' },
+    ]
+
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
@@ -166,24 +366,32 @@ const SettingsPage = ({ user }) => {
           <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#2A2420' }}>Rechtliches</h2>
         </div>
 
-        {[
-          { title: 'Impressum', content: 'Angaben gemäß § 5 TMG\n\nCreatorHub\nInhaber: [Dein Name]\n[Deine Adresse]\n\nKontakt:\nE-Mail: kontakt@creatorhub.app\n\nVerantwortlich für den Inhalt nach § 55 Abs. 2 RStV:\n[Dein Name]\n[Deine Adresse]' },
-          { title: 'AGB', content: 'Allgemeine Geschäftsbedingungen\n\n§1 Geltungsbereich\nDiese AGB gelten für die Nutzung der Plattform CreatorHub.\n\n§2 Registrierung\nDie Nutzung setzt eine Registrierung voraus. Die Freischaltung erfolgt durch einen Administrator.\n\n§3 Rollen\nBei der Registrierung wird eine Rolle gewählt (Manager, Model, Influencer, Cutter). Diese ist nicht änderbar.\n\n§4 Haftung\nDer Betreiber haftet nicht für Inhalte der Nutzer.\n\n§5 Kündigung\nNutzer können ihren Account jederzeit über die Einstellungen löschen.' },
-          { title: 'Datenschutz', content: 'Datenschutzerklärung\n\n1. Verantwortlicher\nCreatorHub, kontakt@creatorhub.app\n\n2. Erhobene Daten\nWir erheben: E-Mail, Name, Profilbild (bei Google-Login), sowie nutzungsbezogene Daten.\n\n3. Speicherung\nDaten werden in Firebase (Google Cloud, EU-Region) gespeichert.\n\n4. Zweck\nAuthentifizierung, App-Funktionalität, Kommunikation zwischen Nutzern.\n\n5. Rechte\nAuskunft, Löschung, Berichtigung gemäß DSGVO. Kontakt: kontakt@creatorhub.app\n\n6. Cookies\nWir nutzen nur technisch notwendige Cookies (Firebase Auth Session).' },
-        ].map(item => (
-          <Card key={item.title} style={{ padding: '20px', marginBottom: '12px' }}>
-            <h3 style={{ fontWeight: '600', color: '#2A2420', fontSize: '16px', marginBottom: '12px' }}>{item.title}</h3>
-            <pre style={{ fontSize: '13px', color: '#5C5349', lineHeight: '1.6', whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: 0 }}>{item.content}</pre>
-          </Card>
-        ))}
+        {legalItems.map(item => {
+          const Icon = item.icon
+          return (
+            <Card key={item.title} onClick={() => navigate(item.path)} style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', cursor: 'pointer' }}>
+              <div style={{ width: '40px', height: '40px', background: `${item.color}12`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon size={18} color={item.color} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: '600', color: '#2A2420', fontSize: '15px' }}>{item.title}</p>
+                <p style={{ fontSize: '12px', color: '#A89B8C', marginTop: '1px' }}>{item.desc}</p>
+              </div>
+              <ChevronRight size={18} color="#C9BFAF" />
+            </Card>
+          )
+        })}
       </div>
     )
   }
 
   // ===== HAUPTMENÜ =====
   const menuItems = [
-    { icon: Shield, label: 'Sicherheit', desc: 'Passwort ändern, Account löschen', action: () => setView('security') },
-    { icon: FileText, label: 'Rechtliches', desc: 'Impressum, AGB, Datenschutz', action: () => setView('legal') },
+    { icon: Building2, label: 'Team & Firma', desc: hasCompany ? `Mitglied bei ${companyName || 'Firma'}` : 'Einer Firma beitreten', action: () => setView('team'), color: '#7EB5E6' },
+    { icon: CreditCard, label: 'Abo-Verwaltung', desc: 'Plan verwalten, Rechnungen, Kündigung', action: () => navigate('/dashboard/subscription'), color: '#6BC9A0' },
+    { icon: Shield, label: 'Sicherheit', desc: 'Passwort ändern, Account löschen', action: () => setView('security'), color: '#FF6B9D' },
+    { icon: Monitor, label: 'Aktive Sitzungen', desc: 'Login-Übersicht und Session-Management', action: () => navigate('/einstellungen/sessions'), color: '#9B8FE6' },
+    { icon: FileText, label: 'Rechtliches', desc: 'Impressum, AGB, Datenschutz, NDA', action: () => setView('legal'), color: '#F5C563' },
   ]
 
   return (
@@ -204,8 +412,44 @@ const SettingsPage = ({ user }) => {
         <div style={{ flex: 1 }}>
           <p style={{ fontWeight: '600', color: '#2A2420', fontSize: '16px' }}>{user?.displayName || 'Creator'}</p>
           <p style={{ fontSize: '13px', color: '#A89B8C', marginTop: '2px' }}>{user?.email}</p>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+            <span style={{
+              fontSize: '11px', padding: '2px 8px', borderRadius: '6px', fontWeight: '600', textTransform: 'capitalize',
+              background: 'rgba(255,107,157,0.08)', color: '#FF6B9D',
+            }}>{userRole}</span>
+            {hasCompany && companyName && (
+              <span style={{
+                fontSize: '11px', padding: '2px 8px', borderRadius: '6px', fontWeight: '500',
+                background: 'rgba(107,201,160,0.08)', color: '#6BC9A0',
+              }}>{companyName}</span>
+            )}
+          </div>
         </div>
       </Card>
+
+      {/* Join Company Banner for Models/Cutters without a company */}
+      {canJoinCompany && !hasCompany && (
+        <Card className="animate-fade-in stagger-2" onClick={() => setView('team')} style={{
+          marginBottom: '16px', padding: '14px 18px', cursor: 'pointer',
+          background: 'linear-gradient(135deg, rgba(126,181,230,0.08), rgba(126,181,230,0.04))',
+          border: '1.5px solid rgba(126,181,230,0.2)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #7EB5E6, #5A9BD4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <UserPlus size={18} color="white" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontWeight: '600', color: '#2A2420', fontSize: '14px' }}>Firma beitreten</p>
+              <p style={{ fontSize: '12px', color: '#7A6F62' }}>Einladungscode eingeben um deinem Team beizutreten</p>
+            </div>
+            <ChevronRight size={18} color="#7EB5E6" />
+          </div>
+        </Card>
+      )}
 
       {/* Menu */}
       {menuItems.map((item, i) => {
@@ -213,9 +457,9 @@ const SettingsPage = ({ user }) => {
         return (
           <Card key={item.label} onClick={item.action}
             style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', cursor: 'pointer' }}
-            className={`animate-fade-in stagger-${i + 2}`}>
-            <div style={{ width: '40px', height: '40px', background: 'rgba(255,107,157,0.08)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon size={18} color="#FF6B9D" />
+            className={`animate-fade-in stagger-${i + 3}`}>
+            <div style={{ width: '40px', height: '40px', background: `${item.color}12`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon size={18} color={item.color} />
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ fontWeight: '600', color: '#2A2420', fontSize: '15px' }}>{item.label}</p>
@@ -227,14 +471,14 @@ const SettingsPage = ({ user }) => {
       })}
 
       {/* Logout */}
-      <div style={{ marginTop: '24px' }} className="animate-fade-in stagger-4">
+      <div style={{ marginTop: '24px' }} className="animate-fade-in stagger-6">
         <Button variant="secondary" onClick={handleLogout} style={{ width: '100%', padding: '14px' }}>
           <LogOut size={18} /> Abmelden
         </Button>
       </div>
 
       {/* Version */}
-      <p style={{ textAlign: 'center', fontSize: '12px', color: '#C9BFAF', marginTop: '20px' }}>CreatorHub v2.0 — Made with AI</p>
+      <p style={{ textAlign: 'center', fontSize: '12px', color: '#C9BFAF', marginTop: '20px' }}>CreatorHub v6.0 — Enterprise Ready</p>
     </div>
   )
 }
