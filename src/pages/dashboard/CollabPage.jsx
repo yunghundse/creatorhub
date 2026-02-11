@@ -10,12 +10,12 @@ const CollabPage = ({ userData }) => {
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ title: '', description: '', priority: 'normal', deadline: '' })
   const user = auth.currentUser
-  const role = userData?.role || 'influencer'
+  const role = userData?.role || 'model'
 
   useEffect(() => {
     if (!user) return
-    // Influencer sees tasks they created, Cutter sees tasks assigned to them
-    const field = role === 'cutter' ? 'assignedTo' : 'createdBy'
+    // Manager sees tasks they created, Model sees tasks assigned to them
+    const field = role === 'model' ? 'assignedTo' : 'createdBy'
     const q = query(collection(db, 'tasks'), where(field, '==', user.uid), orderBy('createdAt', 'desc'))
     const unsub = onSnapshot(q, snap => {
       setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -60,11 +60,11 @@ const CollabPage = ({ userData }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#2A2420' }}>
-            {role === 'cutter' ? 'Meine Aufträge' : 'Collab-Board'}
+            {role === 'model' ? 'Meine Aufträge' : 'Collab-Board'}
           </h2>
           <p style={{ color: '#A89B8C', fontSize: '14px', marginTop: '2px' }}>{tasks.length} Aufgaben</p>
         </div>
-        {role === 'influencer' && (
+        {role === 'manager' && (
           <Button variant="primary" onClick={() => setShowAdd(true)} style={{ padding: '10px 16px' }}>
             <Plus size={18} /> Aufgabe
           </Button>

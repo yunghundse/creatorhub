@@ -27,7 +27,7 @@ const CATEGORY_COLORS = {
 }
 
 const ROLE_COLORS = {
-  manager: '#F5C563', model: '#FF6B9D', influencer: '#7EB5E6', cutter: '#6BC9A0', admin: '#FF6B9D'
+  manager: '#F5C563', model: '#FF6B9D', admin: '#FF6B9D'
 }
 
 const timeAgo = (timestamp) => {

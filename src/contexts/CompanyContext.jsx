@@ -13,9 +13,9 @@ export const CompanyProvider = ({ user, userData, children }) => {
   const [loading, setLoading] = useState(true)
   const [isOwner, setIsOwner] = useState(false)
 
-  const userRole = userData?.role || 'influencer'
-  const canOwnCompany = ['manager', 'influencer'].includes(userRole)
-  const canJoinCompany = ['model', 'cutter'].includes(userRole)
+  const userRole = userData?.role || 'model'
+  const canOwnCompany = userRole === 'manager'
+  const canJoinCompany = userRole === 'model'
 
   // Load company + membership data
   useEffect(() => {

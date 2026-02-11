@@ -35,7 +35,7 @@
     }
   },
 
-  "roles": ["admin", "manager", "model", "influencer", "cutter"],
+  "roles": ["admin", "manager", "model"],
 
   "database_schema": {
     "users": {

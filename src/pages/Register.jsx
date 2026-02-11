@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Sparkles, UserPlus, Briefcase, Camera, Video, Scissors } from 'lucide-react'
+import { Sparkles, UserPlus, Briefcase, Camera } from 'lucide-react'
 import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, updateProfile } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db, googleProvider } from '../firebase'
@@ -9,10 +9,8 @@ import Button from '../components/Button'
 const ADMIN_EMAIL = 'yunghundse@gmail.com'
 
 const ROLES = [
-  { id: 'manager', label: 'Manager', icon: Briefcase, desc: 'Firma erstellen, Models verwalten', color: '#F5C563' },
-  { id: 'model', label: 'Model', icon: Camera, desc: 'Von Manager verwaltet, gemeinsamer Kalender', color: '#FF6B9D' },
-  { id: 'influencer', label: 'Influencer', icon: Video, desc: 'Events & To-Dos, Zusammenarbeit mit Cutter', color: '#7EB5E6' },
-  { id: 'cutter', label: 'Cutter', icon: Scissors, desc: 'Aufträge vom Influencer, gemeinsamer Kalender', color: '#6BC9A0' },
+  { id: 'manager', label: 'Manager', icon: Briefcase, desc: 'Firma erstellen, Models verwalten, Revenue & Deals', color: '#F5C563' },
+  { id: 'model', label: 'Model', icon: Camera, desc: 'Vom Manager verwaltet, Content & Kalender', color: '#FF6B9D' },
 ]
 
 const Register = () => {
@@ -95,7 +93,7 @@ const Register = () => {
   React.useEffect(() => {
     getRedirectResult(auth).then(async (result) => {
       if (result?.user) {
-        const role = sessionStorage.getItem('pendingRole') || 'influencer'
+        const role = sessionStorage.getItem('pendingRole') || 'model'
         sessionStorage.removeItem('pendingRole')
         const userRef = doc(db, 'users', result.user.uid)
         const existing = await getDoc(userRef)

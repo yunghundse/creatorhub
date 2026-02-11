@@ -11,7 +11,7 @@ import Button from '../../components/Button'
 const FirmaDashboard = ({ userData }) => {
   const navigate = useNavigate()
   const { company, isOwner, isApproved, isPending, members, hasCompany } = useCompany()
-  const userRole = userData?.role || 'influencer'
+  const userRole = userData?.role || 'model'
 
   // ===== WARTE AUF FREISCHALTUNG =====
   if (isPending) {
@@ -59,19 +59,19 @@ const FirmaDashboard = ({ userData }) => {
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#2A2420', marginBottom: '10px' }}>Noch kein Team</h2>
           <p style={{ color: '#7A6F62', fontSize: '15px', lineHeight: '1.6', maxWidth: '320px', margin: '0 auto 24px' }}>
-            {['manager', 'influencer'].includes(userRole)
-              ? 'Erstelle dein Team und lade Models oder Cutter ein.'
+            {userRole === 'manager'
+              ? 'Erstelle dein Team und lade Models ein.'
               : 'Gib den Einladungscode deines Managers ein, um beizutreten.'}
           </p>
           <Button variant="primary" onClick={() => navigate('/einstellungen')} style={{ padding: '14px 28px' }}>
-            {['manager', 'influencer'].includes(userRole) ? 'Team erstellen' : 'Code eingeben'}
+            {userRole === 'manager' ? 'Team erstellen' : 'Code eingeben'}
           </Button>
         </div>
       </div>
     )
   }
 
-  // ===== INHABER-VIEW (Manager / Influencer) =====
+  // ===== INHABER-VIEW (Manager) =====
   if (isOwner) {
     const approvedCount = members.filter(m => m.status === 'approved').length
     const pendingCount = members.filter(m => m.status === 'pending').length
@@ -157,7 +157,7 @@ const FirmaDashboard = ({ userData }) => {
     )
   }
 
-  // ===== MITGLIEDER-VIEW (Model / Cutter) =====
+  // ===== MITGLIEDER-VIEW (Model) =====
   return (
     <div>
       {/* Welcome Header */}
@@ -188,7 +188,7 @@ const FirmaDashboard = ({ userData }) => {
           }}>
             <Star size={12} color="#6BC9A0" />
             <span style={{ fontSize: '12px', color: '#6BC9A0', fontWeight: '600' }}>
-              Freigeschaltet als {userRole === 'model' ? 'Model' : 'Cutter'}
+              Freigeschaltet als Model
             </span>
           </div>
         </Card>
@@ -200,9 +200,7 @@ const FirmaDashboard = ({ userData }) => {
       {[
         {
           icon: Calendar, color: '#F5C563', title: 'Redaktionsplan',
-          desc: userRole === 'model'
-            ? 'Hier findest du alle anstehenden Termine und Shootings. Dein Manager hat dort Strategien für Social Media hinterlegt.'
-            : 'Prüfe den Kalender für anstehende Deadlines. Dein Influencer hat dort den Content-Plan eingetragen.',
+          desc: 'Hier findest du alle anstehenden Termine und Shootings. Dein Manager hat dort Strategien für Social Media hinterlegt.',
         },
         {
           icon: CheckSquare, color: '#6BC9A0', title: 'Aufgaben & To-Dos',
@@ -210,9 +208,7 @@ const FirmaDashboard = ({ userData }) => {
         },
         {
           icon: FolderOpen, color: '#9B8FE6', title: 'Asset-Manager',
-          desc: userRole === 'model'
-            ? 'Lade hier dein Rohmaterial hoch. Dein Manager und Cutter erhalten sofort Zugriff und können Feedback geben.'
-            : 'Hier findest du Links zum Rohmaterial und die Timestamps mit Korrekturwünschen von deinem Influencer.',
+          desc: 'Lade hier dein Rohmaterial hoch. Dein Manager erhält sofort Zugriff und kann Feedback geben.',
         },
       ].map((item, i) => {
         const Icon = item.icon

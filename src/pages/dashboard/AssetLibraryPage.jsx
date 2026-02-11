@@ -19,7 +19,7 @@ const AssetLibraryPage = ({ userData }) => {
   const [form, setForm] = useState({ title: '', category: 'intro', url: '', notes: '' })
   const [activeCategory, setActiveCategory] = useState('all')
   const user = auth.currentUser
-  const isInfluencer = userData?.role === 'influencer'
+  const isManager = userData?.role === 'manager'
 
   useEffect(() => {
     if (!userData?.companyId) return
@@ -71,7 +71,7 @@ const AssetLibraryPage = ({ userData }) => {
           <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#2A2420', marginBottom: '4px' }}>Asset Library</h2>
           <p style={{ color: '#A89B8C', fontSize: '14px' }}>Branding-Assets für einheitliches Erscheinungsbild</p>
         </div>
-        {isInfluencer && (
+        {isManager && (
           <Button variant="primary" onClick={() => setShowAdd(true)} style={{ padding: '10px 16px', fontSize: '13px' }}>
             <Plus size={16} /> Asset
           </Button>
@@ -172,7 +172,7 @@ const AssetLibraryPage = ({ userData }) => {
                   }}>
                     <Download size={12} /> Öffnen
                   </a>
-                  {isInfluencer && (
+                  {isManager && (
                     <button onClick={() => deleteAsset(asset.id)} style={{
                       padding: '8px', background: 'rgba(220,38,38,0.06)', border: 'none', borderRadius: '8px',
                       color: '#DC2626', cursor: 'pointer',

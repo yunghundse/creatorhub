@@ -25,7 +25,7 @@ const AGBPage = () => {
       title: 'SS1 Geltungsbereich',
       content: `Diese Allgemeinen Geschaftsbedingungen (AGB) gelten fur die Nutzung der Plattform CreatorHub (nachfolgend "Plattform" genannt), betrieben von CreatorHub, [Dein Name], [Deine Adresse].
 
-Die Plattform bietet Werkzeuge fur Content-Creator, Influencer, Manager, Models und Cutter zur Organisation, Zusammenarbeit und Verwaltung von Inhalten und Teams.
+Die Plattform bietet Werkzeuge fur Content-Creator, Manager und Models zur Organisation, Zusammenarbeit und Verwaltung von Inhalten und Teams.
 
 Mit der Registrierung und Nutzung der Plattform erklarst du dich mit diesen AGB einverstanden. Abweichende Bedingungen werden nur anerkannt, wenn sie von uns schriftlich bestatigt werden.`,
     },
@@ -41,11 +41,11 @@ Du bist fur die Sicherheit deiner Zugangsdaten selbst verantwortlich und darfst 
     },
     {
       title: 'SS3 Rollen und Berechtigungen',
-      content: `Bei der Registrierung wahlst du eine Rolle (Manager, Model, Influencer oder Cutter). Diese Rolle bestimmt deine Berechtigungen innerhalb der Plattform.
+      content: `Bei der Registrierung wahlst du eine Rolle (Manager oder Model). Diese Rolle bestimmt deine Berechtigungen innerhalb der Plattform.
 
 Die Rolle kann nach der Registrierung nicht eigenstandig geandert werden. Eine Anderung ist nur durch den Plattformbetreiber auf Anfrage moglich.
 
-Manager konnen Teams erstellen und Einladungscodes generieren. Models und Cutter konnen Teams uber Einladungscodes beitreten. Influencer konnen eigene Teams erstellen und verwalten.
+Manager konnen Teams erstellen und Einladungscodes generieren. Models konnen Teams uber Einladungscodes beitreten.
 
 Die Zuweisung bestimmter Funktionen ist rollenabhangig und kann sich je nach gewahltem Abonnement unterscheiden.`,
     },

@@ -6,7 +6,7 @@ import Button from '../../components/Button'
 
 const DEMO_ANNOTATIONS = [
   { id: 1, x: 25, y: 30, text: 'Licht hier anpassen', color: '#FF6B9D', by: 'Manager' },
-  { id: 2, x: 60, y: 50, text: 'Diesen Frame schneiden', color: '#7EB5E6', by: 'Influencer' },
+  { id: 2, x: 60, y: 50, text: 'Diesen Frame schneiden', color: '#7EB5E6', by: 'Model' },
   { id: 3, x: 40, y: 75, text: 'Text-Overlay einfügen', color: '#F5C563', by: 'Manager' },
 ]
 

@@ -67,65 +67,6 @@ const ROLE_GUIDES = {
       },
     ],
   },
-  influencer: {
-    color: '#7EB5E6',
-    title: 'Influencer',
-    subtitle: 'Content planen, Cutter beauftragen',
-    steps: [
-      {
-        icon: Users, title: 'Collab-Board',
-        desc: 'Unter "Collab" erstellst du Aufträge für deinen Cutter: Titel, Beschreibung, Priorität und Deadline. Der Cutter sieht und bearbeitet sie.',
-        tip: 'Status läuft: Offen → In Arbeit → Fertig.',
-      },
-      {
-        icon: Timer, title: 'Deadlines setzen',
-        desc: 'Unter "Deadlines" erstellst du Countdowns für deine nächsten Uploads. Plattform wählen, Datum setzen — beide sehen den Timer.',
-        tip: 'Überfällige Deadlines werden rot und mit Warnung angezeigt.',
-      },
-      {
-        icon: Layers, title: 'Asset Library pflegen',
-        desc: 'In der "Library" hinterlegst du deine Branding-Assets: Intros, Outros, Sound-Effekte, Schriftarten. Der Cutter nutzt sie für einheitliches Branding.',
-        tip: 'Assets sind in 5 Kategorien sortiert.',
-      },
-      {
-        icon: TrendingUp, title: 'Trends checken',
-        desc: 'Unter "Trends" siehst du aktuelle Plattform-Trends für TikTok, Instagram, YouTube und OnlyFans. Die AI generiert Content-Vorschläge.',
-        tip: 'Nutze die Vorschläge als Inspiration für neue Videos.',
-      },
-      {
-        icon: DollarSign, title: 'Finanzen tracken',
-        desc: 'Unter "Finanzen" trägst du Einnahmen pro Plattform ein. Brutto/Netto Tracking mit Monatsübersicht.',
-        tip: 'Die Plattform-Aufschlüsselung zeigt, wo das meiste Geld reinkommt.',
-      },
-    ],
-  },
-  cutter: {
-    color: '#6BC9A0',
-    title: 'Cutter',
-    subtitle: 'Aufträge abarbeiten, Assets nutzen',
-    steps: [
-      {
-        icon: Scissors, title: 'Aufträge bearbeiten',
-        desc: 'Unter "Aufträge" siehst du alle Tasks von deinem Influencer. Klicke auf den Status-Button um ihn weiterzusetzen: Offen → In Arbeit → Fertig.',
-        tip: 'Priorität und Deadline helfen dir beim Priorisieren.',
-      },
-      {
-        icon: Timer, title: 'Deadlines im Blick',
-        desc: 'Unter "Deadlines" siehst du die Countdown-Timer für kommende Uploads. So weißt du immer, wie viel Zeit noch bleibt.',
-        tip: 'Erledigte Deadlines können wiederhergestellt werden.',
-      },
-      {
-        icon: Layers, title: 'Branding-Assets nutzen',
-        desc: 'In der "Library" findest du alle Intros, Outros, Sounds und Schriftarten, die dein Influencer hinterlegt hat. Nutze sie für konsistentes Branding.',
-        tip: 'Klicke auf "Öffnen" um ein Asset herunterzuladen.',
-      },
-      {
-        icon: Upload, title: 'Fertige Edits hochladen',
-        desc: 'Unter "Assets" lädst du deine fertigen Edits hoch und setzt den Status auf "Ready for Post".',
-        tip: 'Dein Influencer sieht den Status-Fortschritt.',
-      },
-    ],
-  },
   admin: {
     color: '#FF6B9D',
     title: 'Admin',
@@ -148,8 +89,8 @@ const ROLE_GUIDES = {
 const OnboardingPage = ({ userData }) => {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(0)
-  const role = userData?.role || 'influencer'
-  const guide = ROLE_GUIDES[role] || ROLE_GUIDES.influencer
+  const role = userData?.role || 'model'
+  const guide = ROLE_GUIDES[role] || ROLE_GUIDES.model
 
   const step = guide.steps[currentStep]
   const StepIcon = step?.icon || Sparkles

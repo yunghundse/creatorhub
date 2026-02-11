@@ -36,7 +36,7 @@ const Home = ({ userData }) => {
 
   const currentUser = auth.currentUser
   const isAdmin = currentUser?.email === ADMIN_EMAIL
-  const role = isAdmin ? 'admin' : (userData?.role || 'influencer')
+  const role = isAdmin ? 'admin' : (userData?.role || 'model')
 
   // Load upcoming events
   useEffect(() => {
@@ -108,7 +108,7 @@ const Home = ({ userData }) => {
       }).catch(() => {})
     }
 
-    if (role === 'influencer' || role === 'cutter') {
+    if (role === 'model') {
       getDocs(query(collection(db, 'deadlines'), where('companyId', '==', cid), where('status', '==', 'open'))).then(snap => {
         setDeadlineCount(snap.size)
       }).catch(() => {})
@@ -128,22 +128,14 @@ const Home = ({ userData }) => {
       model: [
         "Content zur Freigabe einreichen für schnellere Veröffentlichung",
         "Kalender checken — sind alle Shootings geplant?",
-      ],
-      influencer: [
         "Poste um 20:00 Uhr für +45% Engagement",
-        "Stories bringen 3x mehr Interaktion",
-        "Deadline-Timer checken — nichts verpassen!",
-      ],
-      cutter: [
-        "Nutze warme Farbtöne für +30% Watch-Time",
-        "Aufträge prüfen — gibt es dringende Deadlines?",
       ],
       admin: [
         "User-Freischaltungen prüfen",
         "Audit-Log regelmäßig checken",
       ],
     }
-    const list = suggestions[role] || suggestions.influencer
+    const list = suggestions[role] || suggestions.model
     setAiSuggestion(list[Math.floor(Math.random() * list.length)])
     setTimeout(() => setAiSuggestion(null), 5000)
   }
@@ -164,18 +156,6 @@ const Home = ({ userData }) => {
       { icon: Video, label: 'Assets', path: '/dashboard/assets', color: '#F5C563' },
       { icon: Heart, label: 'Finanzen', path: '/finanzen', color: '#FF6B9D' },
     ],
-    influencer: [
-      { icon: Timer, label: 'Deadlines', path: '/dashboard/deadlines', color: '#FF6B9D', count: deadlineCount },
-      { icon: ListTodo, label: 'Collab', path: '/dashboard/collab', color: '#7EB5E6', count: taskCount },
-      { icon: TrendingUp, label: 'Trends', path: '/dashboard/trends', color: '#6BC9A0' },
-      { icon: Layers, label: 'Library', path: '/dashboard/asset-library', color: '#F5C563' },
-    ],
-    cutter: [
-      { icon: Timer, label: 'Deadlines', path: '/dashboard/deadlines', color: '#FF6B9D', count: deadlineCount },
-      { icon: ListTodo, label: 'Aufträge', path: '/dashboard/collab', color: '#7EB5E6', count: taskCount },
-      { icon: Layers, label: 'Library', path: '/dashboard/asset-library', color: '#F5C563' },
-      { icon: Scissors, label: 'Assets', path: '/dashboard/assets', color: '#6BC9A0' },
-    ],
     admin: [
       { icon: Shield, label: 'Admin', path: '/admin', color: '#FF6B9D' },
       { icon: Users, label: 'Audit', path: '/dashboard/audit-log', color: '#7EB5E6' },
@@ -183,7 +163,7 @@ const Home = ({ userData }) => {
       { icon: TrendingUp, label: 'Trends', path: '/dashboard/trends', color: '#F5C563' },
     ],
   }
-  const roleActions = quickActions[role] || quickActions.influencer
+  const roleActions = quickActions[role] || quickActions.model
 
   return (
     <div>
@@ -195,7 +175,6 @@ const Home = ({ userData }) => {
         <p style={{ color: '#A89B8C', marginTop: '4px', fontSize: '15px' }}>
           {role === 'manager' ? 'Dein Team-Überblick' :
            role === 'model' ? 'Dein Shooting-Überblick' :
-           role === 'cutter' ? 'Deine Aufträge heute' :
            role === 'admin' ? 'System-Überblick' :
            'Dein Creator-Überblick'}
         </p>
@@ -280,37 +259,6 @@ const Home = ({ userData }) => {
         </div>
       )}
 
-      {(role === 'influencer' || role === 'cutter') && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-          <Card className="animate-fade-in stagger-1">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ width: '32px', height: '32px', background: 'rgba(255,107,157,0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <TrendingUp size={16} color="#FF6B9D" />
-              </div>
-              <span style={{ fontSize: '12px', color: '#A89B8C', fontWeight: '500' }}>Einnahmen</span>
-            </div>
-            <p style={{ fontSize: '26px', fontWeight: '700', color: '#2A2420' }}>
-              €{financeTotal.netto > 1000 ? (financeTotal.netto / 1000).toFixed(1) + 'k' : financeTotal.netto.toLocaleString('de-DE')}
-            </p>
-            {financeTotal.netto > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-                <ArrowUpRight size={14} color="#6BC9A0" />
-                <span style={{ fontSize: '12px', color: '#6BC9A0', fontWeight: '600' }}>Netto</span>
-              </div>
-            )}
-          </Card>
-          <Card className="animate-fade-in stagger-2">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ width: '32px', height: '32px', background: 'rgba(255,107,157,0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Heart size={16} color="#FF6B9D" />
-              </div>
-              <span style={{ fontSize: '12px', color: '#A89B8C', fontWeight: '500' }}>Content</span>
-            </div>
-            <p style={{ fontSize: '26px', fontWeight: '700', color: '#2A2420' }}>{contentStats.total}</p>
-            <span style={{ fontSize: '12px', color: '#A89B8C' }}>{contentStats.ready} fertig</span>
-          </Card>
-        </div>
-      )}
 
       {role === 'model' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>

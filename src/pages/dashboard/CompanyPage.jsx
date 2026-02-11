@@ -201,7 +201,7 @@ const CompanyPage = () => {
           </button>
         </div>
         <p style={{ fontSize: '12px', color: '#A89B8C', marginTop: '8px' }}>
-          Teile diesen Code mit Models/Cuttern. Sie können ihn bei der Registrierung oder in den Einstellungen eingeben.
+          Teile diesen Code mit Models. Sie können ihn bei der Registrierung oder in den Einstellungen eingeben.
         </p>
       </Card>
 

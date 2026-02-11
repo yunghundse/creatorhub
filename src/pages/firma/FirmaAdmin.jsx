@@ -41,8 +41,8 @@ const FirmaAdmin = ({ userData }) => {
     try { await removeMember(membershipId, userId) } catch (err) { console.error(err) }
   }
 
-  const roleLabels = { model: 'Model', cutter: 'Cutter', influencer: 'Influencer', manager: 'Manager' }
-  const roleColors = { model: '#FF6B9D', cutter: '#6BC9A0', influencer: '#7EB5E6', manager: '#F5C563' }
+  const roleLabels = { model: 'Model', manager: 'Manager' }
+  const roleColors = { model: '#FF6B9D', manager: '#F5C563' }
 
   return (
     <div>
@@ -105,7 +105,7 @@ const FirmaAdmin = ({ userData }) => {
               </button>
             </div>
             <p style={{ fontSize: '11px', color: '#A89B8C', marginTop: '8px', textAlign: 'center' }}>
-              Teile diesen Code mit Models oder Cuttern, die deinem Team beitreten sollen.
+              Teile diesen Code mit Models, die deinem Team beitreten sollen.
             </p>
           </Card>
 

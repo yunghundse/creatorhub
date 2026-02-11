@@ -51,47 +51,18 @@ const ROLE_NAV = {
     { path: '/finanzen', icon: PieChart, label: 'Finanzen' },
     { path: '/fyp', icon: Flame, label: 'FYP' },
   ],
-  influencer: [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
-    { path: '/dashboard/collab', icon: ListTodo, label: 'Collab' },
-    { path: '/dashboard/deadlines', icon: Timer, label: 'Deadlines' },
-    { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
-    { path: '/dashboard/asset-library', icon: Layers, label: 'Library' },
-    { path: '/dashboard/assets', icon: Upload, label: 'Assets' },
-    { path: '/content', icon: Kanban, label: 'Content' },
-    { path: '/kalender', icon: Calendar, label: 'Kalender' },
-    { path: '/chat', icon: MessageCircle, label: 'Chat' },
-    { path: '/fyp', icon: Flame, label: 'FYP' },
-  ],
-  cutter: [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
-    { path: '/dashboard/collab', icon: ListTodo, label: 'Aufträge' },
-    { path: '/dashboard/deadlines', icon: Timer, label: 'Deadlines' },
-    { path: '/dashboard/asset-library', icon: Layers, label: 'Library' },
-    { path: '/dashboard/assets', icon: Upload, label: 'Assets' },
-    { path: '/kalender', icon: Calendar, label: 'Kalender' },
-    { path: '/chat', icon: MessageCircle, label: 'Chat' },
-    { path: '/finanzen', icon: PieChart, label: 'Finanzen' },
-    { path: '/fyp', icon: Flame, label: 'FYP' },
-  ],
 }
 
 const ROLE_COLORS = {
   admin: '#FF6B9D',
   manager: '#F5C563',
   model: '#FF6B9D',
-  influencer: '#7EB5E6',
-  cutter: '#6BC9A0',
 }
 
 const ROLE_LABELS = {
   admin: 'Admin',
   manager: 'Manager',
   model: 'Model',
-  influencer: 'Influencer',
-  cutter: 'Cutter',
 }
 
 const Layout = ({ children, user, userData }) => {
@@ -100,12 +71,12 @@ const Layout = ({ children, user, userData }) => {
   const [companyName, setCompanyName] = useState(null)
 
   const isAdmin = user?.email === ADMIN_EMAIL
-  const role = isAdmin ? 'admin' : (userData?.role || 'influencer')
+  const role = isAdmin ? 'admin' : (userData?.role || 'model')
   const roleColor = ROLE_COLORS[role]
   const hasCompany = !!userData?.companyId
 
   // Build nav items: filter out company-required items if no company
-  const rawNavItems = ROLE_NAV[role] || ROLE_NAV.influencer
+  const rawNavItems = ROLE_NAV[role] || ROLE_NAV.model
   const navItems = rawNavItems.filter(item => {
     if (item.requiresCompany && !hasCompany) return false
     return true

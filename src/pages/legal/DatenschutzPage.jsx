@@ -104,7 +104,7 @@ const DatenschutzPage = () => {
           - E-Mail-Adresse<br />
           - Anzeigename / Benutzername<br />
           - Profilbild (bei Google-Login automatisch ubernommen)<br />
-          - Gewahlte Rolle (Manager, Model, Influencer, Cutter)<br />
+          - Gewahlte Rolle (Manager, Model)<br />
           - Zeitpunkt der Registrierung
         </p>
 

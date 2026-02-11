@@ -24,10 +24,10 @@ const SettingsPage = ({ user, userData }) => {
   const [joinLoading, setJoinLoading] = useState(false)
   const [companyName, setCompanyName] = useState(null)
 
-  const userRole = userData?.role || 'influencer'
+  const userRole = userData?.role || 'model'
   const hasCompany = !!userData?.companyId
-  // Models & Cutter können beitreten, Influencer & Manager gründen selbst
-  const canJoinCompany = ['model', 'cutter'].includes(userRole)
+  // Models können beitreten, Manager gründen selbst
+  const canJoinCompany = userRole === 'model'
 
   // Load current company name
   useEffect(() => {
@@ -283,8 +283,8 @@ const SettingsPage = ({ user, userData }) => {
           <Card style={{ textAlign: 'center', padding: '40px 20px' }}>
             <Building2 size={36} color="#E8DFD3" style={{ marginBottom: '12px' }} />
             <p style={{ color: '#7A6F62', fontSize: '14px', marginBottom: '4px' }}>
-              {['manager', 'influencer'].includes(userRole)
-                ? 'Als Manager/Influencer kannst du eine Firma über die Firma-Seite erstellen.'
+              {userRole === 'manager'
+                ? 'Als Manager kannst du eine Firma über die Firma-Seite erstellen.'
                 : 'Du bist aktuell keiner Firma zugeordnet.'}
             </p>
           </Card>
@@ -459,7 +459,7 @@ const SettingsPage = ({ user, userData }) => {
         </div>
       </Card>
 
-      {/* Join Company Banner for Models/Cutters without a company */}
+      {/* Join Company Banner for Models without a company */}
       {canJoinCompany && !hasCompany && (
         <Card className="animate-fade-in stagger-2" onClick={() => setView('team')} style={{
           marginBottom: '16px', padding: '14px 18px', cursor: 'pointer',

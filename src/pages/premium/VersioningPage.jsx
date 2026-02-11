@@ -9,8 +9,8 @@ const DEMO_ASSETS = [
     id: 1,
     title: 'Instagram Reel — Produktplatzierung',
     versions: [
-      { v: 'v1', date: '2026-02-05', by: 'Alex (Cutter)', status: 'rejected', notes: 'Erste Version — Farben zu dunkel', size: '24.5 MB' },
-      { v: 'v2', date: '2026-02-08', by: 'Alex (Cutter)', status: 'review', notes: 'Farben korrigiert, neues Outro', size: '25.1 MB' },
+      { v: 'v1', date: '2026-02-05', by: 'Alex (Model)', status: 'rejected', notes: 'Erste Version — Farben zu dunkel', size: '24.5 MB' },
+      { v: 'v2', date: '2026-02-08', by: 'Alex (Model)', status: 'review', notes: 'Farben korrigiert, neues Outro', size: '25.1 MB' },
     ],
   },
   {
@@ -26,7 +26,7 @@ const DEMO_ASSETS = [
     id: 3,
     title: 'TikTok Video — Outfit of the Day',
     versions: [
-      { v: 'v1', date: '2026-02-10', by: 'Max (Cutter)', status: 'review', notes: 'Erster Schnitt, 45 Sekunden', size: '18.7 MB' },
+      { v: 'v1', date: '2026-02-10', by: 'Max (Model)', status: 'review', notes: 'Erster Schnitt, 45 Sekunden', size: '18.7 MB' },
     ],
   },
 ]

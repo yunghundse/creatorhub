@@ -214,17 +214,17 @@ function App() {
       {/* Dashboard routes — role-gated */}
       <Route path="/dashboard/company" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><CompanyPage /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/models" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><CompanyPage /></RoleGuard></ProtectedRoute>} />
-      <Route path="/dashboard/collab" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['influencer', 'cutter']}><CollabPage userData={userData} /></RoleGuard></ProtectedRoute>} />
-      <Route path="/dashboard/trends" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager', 'influencer']}><TrendsPage /></RoleGuard></ProtectedRoute>} />
+      <Route path="/dashboard/collab" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager', 'model']}><CollabPage userData={userData} /></RoleGuard></ProtectedRoute>} />
+      <Route path="/dashboard/trends" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><TrendsPage /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/assets" element={<ProtectedRoute {...pp}><AssetsPage userData={userData} /></ProtectedRoute>} />
       <Route path="/dashboard/analytics" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><AnalyticsPage /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/schedule" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['model']}><CalendarPage /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/revenue" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><RevenueSharePage userData={userData} /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/approvals" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager', 'model']}><ApprovalQueuePage userData={userData} /></RoleGuard></ProtectedRoute>} />
-      <Route path="/dashboard/asset-library" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['influencer', 'cutter']}><AssetLibraryPage userData={userData} /></RoleGuard></ProtectedRoute>} />
+      <Route path="/dashboard/asset-library" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager', 'model']}><AssetLibraryPage userData={userData} /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/brand-deals" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><BrandDealsPage userData={userData} /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/audit-log" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><AuditLogPage userData={userData} /></RoleGuard></ProtectedRoute>} />
-      <Route path="/dashboard/deadlines" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['influencer', 'cutter']}><DeadlinesPage userData={userData} /></RoleGuard></ProtectedRoute>} />
+      <Route path="/dashboard/deadlines" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager', 'model']}><DeadlinesPage userData={userData} /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/pricing" element={<ProtectedRoute {...pp}><PricingPage userData={userData} /></ProtectedRoute>} />
       <Route path="/dashboard/subscription" element={<ProtectedRoute {...pp}><SubscriptionPage userData={userData} /></ProtectedRoute>} />
 
