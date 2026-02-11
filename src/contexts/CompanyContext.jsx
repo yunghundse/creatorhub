@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { doc, getDoc, collection, query, where, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
+import { createNotification } from '../utils/notifications'
 
 const CompanyContext = createContext(null)
 
@@ -96,13 +97,7 @@ export const CompanyProvider = ({ user, userData, children }) => {
       setMembers(memberList)
     })
 
-    // Also check legacy members (users with companyId field)
-    const legacyQ = query(collection(db, 'users'), where('companyId', '==', company.id))
-    const unsubLegacy = onSnapshot(legacyQ, (snap) => {
-      // Legacy members are merged in the member list
-    })
-
-    return () => { unsub(); unsubLegacy() }
+    return () => { unsub() }
   }, [company?.id])
 
   // Join company via invite code
@@ -140,6 +135,18 @@ export const CompanyProvider = ({ user, userData, children }) => {
     // Also set legacy companyId for backward compatibility
     await updateDoc(doc(db, 'users', user.uid), { companyId })
 
+    // Notify company owner about new join request
+    try {
+      await createNotification({
+        recipientId: companyData.ownerId,
+        type: 'invite',
+        title: 'Neue Beitrittsanfrage',
+        message: `${user.displayName || user.email} möchte deinem Team "${companyData.name}" beitreten.`,
+        link: '/firma/admin',
+        senderId: user.uid,
+      })
+    } catch (notifErr) { console.warn('Join notification error:', notifErr) }
+
     setCompany({ id: companyId, ...companyData })
     setMembership({ status: 'pending', role: userRole })
     return companyData.name
@@ -148,6 +155,21 @@ export const CompanyProvider = ({ user, userData, children }) => {
   // Approve member (owner only)
   const approveMember = async (membershipId) => {
     await updateDoc(doc(db, 'company_members', membershipId), { status: 'approved' })
+
+    // Notify the approved member
+    try {
+      const memberSnap = await getDoc(doc(db, 'company_members', membershipId))
+      if (memberSnap.exists()) {
+        await createNotification({
+          recipientId: memberSnap.data().userId,
+          type: 'approval',
+          title: 'Freischaltung',
+          message: `Du wurdest im Team "${company?.name}" freigeschaltet! Du hast jetzt Zugriff auf alle Team-Features.`,
+          link: '/firma/dashboard',
+          senderId: user.uid,
+        })
+      }
+    } catch (notifErr) { console.warn('Approve notification error:', notifErr) }
   }
 
   // Remove member (owner only)

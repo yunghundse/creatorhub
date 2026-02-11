@@ -1,75 +1,102 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Bell, CheckCircle, MessageCircle, UserPlus, CreditCard, Shield, X } from 'lucide-react'
+import { Bell, CheckCircle, MessageCircle, UserPlus, CreditCard, Shield, X, Calendar, CheckSquare, Trash2 } from 'lucide-react'
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, writeBatch, deleteDoc } from 'firebase/firestore'
+import { db, auth } from '../firebase'
 
 const TYPE_CONFIG = {
   approval: { icon: CheckCircle, color: '#6BC9A0', bg: 'rgba(107,201,160,0.12)' },
-  chat: { icon: MessageCircle, color: '#7EB5E6', bg: 'rgba(126,181,230,0.12)' },
   invite: { icon: UserPlus, color: '#B48EE0', bg: 'rgba(180,142,224,0.12)' },
-  payment: { icon: CreditCard, color: '#E8A940', bg: 'rgba(232,169,64,0.12)' },
+  task: { icon: CheckSquare, color: '#7EB5E6', bg: 'rgba(126,181,230,0.12)' },
+  calendar: { icon: Calendar, color: '#F5C563', bg: 'rgba(245,197,99,0.12)' },
   system: { icon: Shield, color: '#FF6B9D', bg: 'rgba(255,107,157,0.12)' },
 }
 
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: 1,
-    type: 'approval',
-    title: 'Content freigegeben',
-    message: 'Dein Beitrag "Sommer Kollektion 2026" wurde vom Manager freigegeben.',
-    time: 'vor 3 Min',
-    read: false,
-  },
-  {
-    id: 2,
-    type: 'chat',
-    title: 'Neue Nachricht',
-    message: 'Luisa hat dir eine Nachricht im Team-Chat geschickt.',
-    time: 'vor 12 Min',
-    read: false,
-  },
-  {
-    id: 3,
-    type: 'invite',
-    title: 'Team-Einladung',
-    message: 'Du wurdest zum Team "Studio Berlin" eingeladen.',
-    time: 'vor 45 Min',
-    read: false,
-  },
-  {
-    id: 4,
-    type: 'payment',
-    title: 'Zahlung eingegangen',
-    message: 'Eine Zahlung von 1.250,00 EUR wurde deinem Konto gutgeschrieben.',
-    time: 'vor 2 Std',
-    read: true,
-  },
-  {
-    id: 5,
-    type: 'system',
-    title: 'Sicherheitshinweis',
-    message: 'Neuer Login von Chrome auf Windows erkannt. Warst du das?',
-    time: 'vor 5 Std',
-    read: true,
-  },
-  {
-    id: 6,
-    type: 'approval',
-    title: 'Feedback erhalten',
-    message: 'Max hat einen Kommentar zu deinem Entwurf hinterlassen.',
-    time: 'vor 1 Tag',
-    read: true,
-  },
-]
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
+  const now = new Date()
+  const diffMs = now - date
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHr = Math.floor(diffMs / 3600000)
+  const diffDay = Math.floor(diffMs / 86400000)
+
+  if (diffMin < 1) return 'gerade eben'
+  if (diffMin < 60) return `vor ${diffMin} Min`
+  if (diffHr < 24) return `vor ${diffHr} Std`
+  if (diffDay < 7) return `vor ${diffDay} ${diffDay === 1 ? 'Tag' : 'Tagen'}`
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+}
 
 const NotificationBell = () => {
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS)
+  const [notifications, setNotifications] = useState([])
   const dropdownRef = useRef(null)
   const bellRef = useRef(null)
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  // Real-time Firestore listener
+  useEffect(() => {
+    const user = auth.currentUser
+    if (!user) return
+
+    const q = query(
+      collection(db, 'notifications'),
+      where('recipientId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    )
+
+    const unsub = onSnapshot(q, (snap) => {
+      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 30))
+    }, (err) => {
+      console.error('Notification listener error:', err)
+      // Fallback: without orderBy (index may not exist yet)
+      const fallbackQ = query(
+        collection(db, 'notifications'),
+        where('recipientId', '==', user.uid)
+      )
+      onSnapshot(fallbackQ, (snap) => {
+        const sorted = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => {
+            const aTime = a.createdAt?.toMillis?.() || 0
+            const bTime = b.createdAt?.toMillis?.() || 0
+            return bTime - aTime
+          })
+          .slice(0, 30)
+        setNotifications(sorted)
+      })
+    })
+
+    return () => unsub()
+  }, [])
+
+  const handleMarkAllRead = async () => {
+    const user = auth.currentUser
+    if (!user) return
+    const batch = writeBatch(db)
+    notifications.filter(n => !n.read).forEach(n => {
+      batch.update(doc(db, 'notifications', n.id), { read: true })
+    })
+    try { await batch.commit() } catch (err) { console.error(err) }
+  }
+
+  const handleDeleteNotification = async (e, notifId) => {
+    e.stopPropagation()
+    try { await deleteDoc(doc(db, 'notifications', notifId)) } catch (err) { console.error(err) }
+  }
+
+  const handleClickNotification = async (notif) => {
+    // Mark as read on click
+    if (!notif.read) {
+      try { await updateDoc(doc(db, 'notifications', notif.id), { read: true }) } catch (err) { console.error(err) }
+    }
+    // Navigate if link exists
+    if (notif.link) {
+      window.location.hash = ''
+      window.location.pathname = notif.link
+    }
+    setOpen(false)
   }
 
   // Close dropdown when clicking outside
@@ -137,7 +164,7 @@ const NotificationBell = () => {
             border: '2px solid #FFFDF7',
             lineHeight: 1,
           }}>
-            {unreadCount}
+            {unreadCount > 9 ? '9+' : unreadCount}
           </div>
         )}
       </button>
@@ -231,88 +258,115 @@ const NotificationBell = () => {
 
           {/* Notification List */}
           <div style={{ padding: '8px 12px 12px' }}>
-            {notifications.map((notif) => {
-              const config = TYPE_CONFIG[notif.type] || TYPE_CONFIG.system
-              const Icon = config.icon
-              return (
-                <div
-                  key={notif.id}
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    padding: '12px',
-                    borderRadius: '14px',
-                    marginBottom: '4px',
-                    borderLeft: !notif.read ? '3px solid rgba(126, 181, 230, 0.6)' : '3px solid transparent',
-                    background: !notif.read ? 'rgba(126, 181, 230, 0.04)' : 'transparent',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(42, 36, 32, 0.03)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = !notif.read ? 'rgba(126, 181, 230, 0.04)' : 'transparent'
-                  }}
-                >
-                  {/* Icon */}
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '11px',
-                    background: config.bg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <Icon size={17} color={config.color} />
-                  </div>
-
-                  {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+            {notifications.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px 16px' }}>
+                <Bell size={28} color="#E8DFD3" style={{ marginBottom: '8px' }} />
+                <p style={{ fontSize: '13px', color: '#A89B8C' }}>Keine Benachrichtigungen</p>
+              </div>
+            ) : (
+              notifications.map((notif) => {
+                const config = TYPE_CONFIG[notif.type] || TYPE_CONFIG.system
+                const Icon = config.icon
+                return (
+                  <div
+                    key={notif.id}
+                    onClick={() => handleClickNotification(notif)}
+                    style={{
+                      display: 'flex',
+                      gap: '12px',
+                      padding: '12px',
+                      borderRadius: '14px',
+                      marginBottom: '4px',
+                      borderLeft: !notif.read ? '3px solid rgba(126, 181, 230, 0.6)' : '3px solid transparent',
+                      background: !notif.read ? 'rgba(126, 181, 230, 0.04)' : 'transparent',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(42, 36, 32, 0.03)'
+                      const del = e.currentTarget.querySelector('.notif-del')
+                      if (del) del.style.opacity = '1'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = !notif.read ? 'rgba(126, 181, 230, 0.04)' : 'transparent'
+                      const del = e.currentTarget.querySelector('.notif-del')
+                      if (del) del.style.opacity = '0'
+                    }}
+                  >
+                    {/* Icon */}
                     <div style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '11px',
+                      background: config.bg,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                      marginBottom: '2px',
+                      justifyContent: 'center',
+                      flexShrink: 0,
                     }}>
-                      <span style={{
-                        fontWeight: !notif.read ? '700' : '600',
-                        fontSize: '13px',
-                        color: '#2A2420',
+                      <Icon size={17} color={config.color} />
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        marginBottom: '2px',
+                      }}>
+                        <span style={{
+                          fontWeight: !notif.read ? '700' : '600',
+                          fontSize: '13px',
+                          color: '#2A2420',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {notif.title}
+                        </span>
+                        <span style={{
+                          fontSize: '11px',
+                          color: '#A89B8C',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}>
+                          {formatTime(notif.createdAt)}
+                        </span>
+                      </div>
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#7A6F62',
+                        lineHeight: '1.4',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
                       }}>
-                        {notif.title}
-                      </span>
-                      <span style={{
-                        fontSize: '11px',
-                        color: '#A89B8C',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                      }}>
-                        {notif.time}
-                      </span>
+                        {notif.message}
+                      </p>
                     </div>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#7A6F62',
-                      lineHeight: '1.4',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                    }}>
-                      {notif.message}
-                    </p>
+
+                    {/* Delete button (on hover) */}
+                    <button
+                      className="notif-del"
+                      onClick={(e) => handleDeleteNotification(e, notif.id)}
+                      style={{
+                        position: 'absolute', top: '8px', right: '8px',
+                        background: 'none', border: 'none', padding: '4px',
+                        cursor: 'pointer', color: '#C9BFAF', opacity: 0,
+                        transition: 'opacity 0.2s',
+                      }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         </div>
       )}

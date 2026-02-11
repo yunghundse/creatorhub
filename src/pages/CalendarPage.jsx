@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react'
 import { Target, Plus, X, Trash2, Edit3, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
-  query, where, orderBy, onSnapshot, serverTimestamp, Timestamp
+  query, where, orderBy, onSnapshot, getDocs, serverTimestamp, Timestamp
 } from 'firebase/firestore'
 import { db, auth } from '../firebase'
+import { notifyTeam, notifyOwner } from '../utils/notifications'
 import Card from '../components/Card'
 import Button from '../components/Button'
 
@@ -92,6 +93,39 @@ const CalendarPage = () => {
     } else {
       data.createdAt = serverTimestamp()
       await addDoc(collection(db, 'events'), data)
+
+      // Notify team members about new event
+      try {
+        const memberQ = query(collection(db, 'company_members'), where('userId', '==', user.uid))
+        const memberSnap = await getDocs(memberQ)
+        if (!memberSnap.empty) {
+          const companyId = memberSnap.docs[0].data().companyId
+          // Get all team members
+          const teamQ = query(collection(db, 'company_members'), where('companyId', '==', companyId))
+          const teamSnap = await getDocs(teamQ)
+          const teamMembers = teamSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+
+          const notifData = {
+            type: 'calendar',
+            title: 'Neuer Termin',
+            message: `${user.displayName || 'Jemand'} hat "${title.trim()}" am ${eventDate}${eventTime ? ' um ' + eventTime + ' Uhr' : ''} erstellt.`,
+            link: '/kalender',
+          }
+
+          // Notify all approved team members
+          await notifyTeam(teamMembers, user.uid, notifData)
+
+          // Also notify company owner (not in company_members)
+          const compSnap = await getDocs(query(collection(db, 'companies'), where('ownerId', '!=', '')))
+          for (const cd of compSnap.docs) {
+            if (cd.id === companyId && cd.data().ownerId !== user.uid) {
+              await notifyOwner(cd.data().ownerId, { ...notifData, senderId: user.uid })
+            }
+          }
+        }
+      } catch (notifErr) {
+        console.warn('Calendar notification error:', notifErr)
+      }
     }
     resetForm()
   }

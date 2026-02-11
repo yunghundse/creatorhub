@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCompany } from '../../contexts/CompanyContext'
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy } from 'firebase/firestore'
 import { auth, db } from '../../firebase'
+import { createNotification, notifyTeam } from '../../utils/notifications'
 import {
   ArrowLeft, Plus, Check, Trash2, Clock, User, Filter, X, CheckSquare
 } from 'lucide-react'
@@ -60,6 +61,31 @@ const FirmaTasks = ({ userData }) => {
     try {
       const docRef = await addDoc(collection(db, 'company_tasks'), newTask)
       setTasks(prev => [{ id: docRef.id, ...newTask, createdAt: { seconds: Date.now() / 1000 } }, ...prev])
+
+      // Send notification
+      const user = auth.currentUser
+      const senderName = user?.displayName || 'Manager'
+      if (assignTo) {
+        // Notify the assigned person
+        await createNotification({
+          recipientId: assignTo,
+          type: 'task',
+          title: 'Neue Aufgabe',
+          message: `${senderName} hat dir "${title.trim()}" zugewiesen.`,
+          link: '/firma/tasks',
+          senderId: uid,
+        })
+      } else {
+        // Notify all team members
+        const teamMembers = members.filter(m => m.status === 'approved')
+        await notifyTeam(teamMembers, uid, {
+          type: 'task',
+          title: 'Neue Aufgabe',
+          message: `${senderName} hat "${title.trim()}" erstellt.`,
+          link: '/firma/tasks',
+        })
+      }
+
       setTitle(''); setDesc(''); setAssignTo(''); setPriority('normal'); setShowCreate(false)
     } catch (err) { console.error('Create task error:', err) }
   }

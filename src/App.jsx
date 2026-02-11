@@ -18,7 +18,6 @@ import SettingsPage from './pages/SettingsPage'
 import Admin from './pages/Admin'
 
 // Dashboard pages
-import CompanyPage from './pages/dashboard/CompanyPage'
 import CollabPage from './pages/dashboard/CollabPage'
 import TrendsPage from './pages/dashboard/TrendsPage'
 import AssetsPage from './pages/dashboard/AssetsPage'
@@ -212,8 +211,8 @@ function App() {
       <Route path="/firma/admin" element={<ProtectedRoute {...pp}><FirmaAdmin userData={userData} /></ProtectedRoute>} />
 
       {/* Dashboard routes — role-gated */}
-      <Route path="/dashboard/company" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><CompanyPage /></RoleGuard></ProtectedRoute>} />
-      <Route path="/dashboard/models" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><CompanyPage /></RoleGuard></ProtectedRoute>} />
+      <Route path="/dashboard/company" element={<Navigate to="/firma/dashboard" replace />} />
+      <Route path="/dashboard/models" element={<Navigate to="/firma/admin" replace />} />
       <Route path="/dashboard/collab" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager', 'model']}><CollabPage userData={userData} /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/trends" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><TrendsPage /></RoleGuard></ProtectedRoute>} />
       <Route path="/dashboard/assets" element={<ProtectedRoute {...pp}><AssetsPage userData={userData} /></ProtectedRoute>} />
