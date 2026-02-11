@@ -5,7 +5,7 @@ import {
   Sparkles, Settings, Shield, Building2, Users,
   BarChart3, Upload, Video, Scissors, TrendingUp,
   ListTodo, Menu, X, DollarSign, CheckCircle,
-  Briefcase, FileText, Timer, Layers, HelpCircle, Flame
+  Briefcase, FileText, Timer, Layers, HelpCircle, Flame, Crown
 } from 'lucide-react'
 import { db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
@@ -13,10 +13,11 @@ import NotificationBell from './NotificationBell'
 
 const ADMIN_EMAIL = 'yunghundse@gmail.com'
 
-// Base navigation per role (WITHOUT Premium, WITH Firma)
+// Role-based navigation config
 const ROLE_NAV = {
   admin: [
     { path: '/', icon: Home, label: 'Home' },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
     { path: '/dashboard/audit-log', icon: FileText, label: 'Audit' },
@@ -29,20 +30,22 @@ const ROLE_NAV = {
   ],
   manager: [
     { path: '/', icon: Home, label: 'Home' },
-    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
+    { path: '/premium', icon: Crown, label: 'Premium' },
+    { path: '/dashboard/company', icon: Building2, label: 'Firma' },
     { path: '/dashboard/approvals', icon: CheckCircle, label: 'Freigaben' },
     { path: '/dashboard/revenue', icon: DollarSign, label: 'Revenue' },
     { path: '/dashboard/brand-deals', icon: Briefcase, label: 'Deals' },
     { path: '/dashboard/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
     { path: '/dashboard/assets', icon: Upload, label: 'Assets' },
+    { path: '/dashboard/audit-log', icon: FileText, label: 'Audit' },
     { path: '/kalender', icon: Calendar, label: 'Kalender' },
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/fyp', icon: Flame, label: 'FYP' },
   ],
   model: [
     { path: '/', icon: Home, label: 'Home' },
-    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/approvals', icon: CheckCircle, label: 'Freigaben' },
     { path: '/dashboard/schedule', icon: Calendar, label: 'Kalender' },
     { path: '/dashboard/assets', icon: Upload, label: 'Assets' },
@@ -53,7 +56,7 @@ const ROLE_NAV = {
   ],
   influencer: [
     { path: '/', icon: Home, label: 'Home' },
-    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/collab', icon: ListTodo, label: 'Collab' },
     { path: '/dashboard/deadlines', icon: Timer, label: 'Deadlines' },
     { path: '/dashboard/trends', icon: TrendingUp, label: 'Trends' },
@@ -61,12 +64,13 @@ const ROLE_NAV = {
     { path: '/dashboard/assets', icon: Upload, label: 'Assets' },
     { path: '/content', icon: Kanban, label: 'Content' },
     { path: '/kalender', icon: Calendar, label: 'Kalender' },
+    { path: '/finanzen', icon: PieChart, label: 'Finanzen' },
     { path: '/chat', icon: MessageCircle, label: 'Chat' },
     { path: '/fyp', icon: Flame, label: 'FYP' },
   ],
   cutter: [
     { path: '/', icon: Home, label: 'Home' },
-    { path: '/firma/dashboard', icon: Building2, label: 'Mein Team', requiresCompany: true },
+    { path: '/premium', icon: Crown, label: 'Premium' },
     { path: '/dashboard/collab', icon: ListTodo, label: 'Aufträge' },
     { path: '/dashboard/deadlines', icon: Timer, label: 'Deadlines' },
     { path: '/dashboard/asset-library', icon: Layers, label: 'Library' },
@@ -101,35 +105,20 @@ const Layout = ({ children, user, userData }) => {
 
   const isAdmin = user?.email === ADMIN_EMAIL
   const role = isAdmin ? 'admin' : (userData?.role || 'influencer')
+  const navItems = ROLE_NAV[role] || ROLE_NAV.influencer
   const roleColor = ROLE_COLORS[role]
-  const hasCompany = !!userData?.companyId
-
-  // Build nav items: filter out company-required items if no company
-  const rawNavItems = ROLE_NAV[role] || ROLE_NAV.influencer
-  const navItems = rawNavItems.filter(item => {
-    if (item.requiresCompany && !hasCompany) return false
-    return true
-  })
-
-  // Dynamic label: replace "Mein Team" with company name if available
-  const displayNavItems = navItems.map(item => {
-    if (item.requiresCompany && companyName) {
-      return { ...item, label: companyName.length > 10 ? companyName.slice(0, 10) + '…' : companyName }
-    }
-    return item
-  })
 
   // Load company name for team header
   React.useEffect(() => {
-    if (!userData?.companyId) { setCompanyName(null); return }
+    if (!userData?.companyId) return
     getDoc(doc(db, 'companies', userData.companyId)).then(snap => {
       if (snap.exists()) setCompanyName(snap.data().name)
     }).catch(() => {})
   }, [userData?.companyId])
 
   // Mobile: show max 5 items in bottom nav
-  const bottomNavItems = displayNavItems.slice(0, 5)
-  const moreItems = displayNavItems.slice(5)
+  const bottomNavItems = navItems.slice(0, 5)
+  const moreItems = navItems.slice(5)
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #FFFDF7 0%, #FFF9EB 30%, #FBF7F2 100%)' }}>
@@ -231,7 +220,7 @@ const Layout = ({ children, user, userData }) => {
             boxShadow: '4px 0 30px rgba(0,0,0,0.1)',
           }} className="animate-fade-in">
             <p style={{ fontSize: '12px', fontWeight: '600', color: '#A89B8C', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>Navigation</p>
-            {displayNavItems.map(item => {
+            {navItems.map(item => {
               const Icon = item.icon
               return (
                 <NavLink key={item.path} to={item.path} end={item.path === '/'} onClick={() => setSidebarOpen(false)}

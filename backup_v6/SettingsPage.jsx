@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogOut, User, Shield, FileText, ChevronRight, Key, Trash2, AlertTriangle, X, Building2, Check, UserPlus, Monitor, CreditCard, Scale, FileCheck } from 'lucide-react'
 import { signOut, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from 'firebase/auth'
-import { doc, deleteDoc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, deleteDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 import Card from '../components/Card'
 import Button from '../components/Button'
@@ -69,15 +69,6 @@ const SettingsPage = ({ user, userData }) => {
         const credential = EmailAuthProvider.credential(user.email, deletePw)
         await reauthenticateWithCredential(auth.currentUser, credential)
       }
-      // Clean up company_members entries for this user
-      try {
-        const memberSnap = await getDocs(query(collection(db, 'company_members'), where('userId', '==', user.uid)))
-        for (const memberDoc of memberSnap.docs) {
-          await deleteDoc(memberDoc.ref)
-        }
-      } catch (cleanupErr) {
-        console.warn('company_members cleanup:', cleanupErr)
-      }
       await deleteDoc(doc(db, 'users', user.uid))
       await deleteUser(auth.currentUser)
     } catch (err) {
@@ -122,23 +113,9 @@ const SettingsPage = ({ user, userData }) => {
         return
       }
 
-      // Join the company (legacy + new company_members system)
+      // Join the company
       await updateDoc(doc(db, 'users', user.uid), { companyId })
-      // Create company_members entry with pending status
-      try {
-        await addDoc(collection(db, 'company_members'), {
-          companyId,
-          userId: user.uid,
-          email: user.email,
-          displayName: user.displayName || user.email,
-          role: userRole,
-          status: 'pending',
-          joinedAt: serverTimestamp(),
-        })
-      } catch (memberErr) {
-        console.warn('company_members create:', memberErr)
-      }
-      setJoinSuccess(`Erfolgreich "${companyData.name}" beigetreten! Warte auf Freischaltung durch den Inhaber.`)
+      setJoinSuccess(`Erfolgreich "${companyData.name}" beigetreten!`)
       setCompanyName(companyData.name)
       setInviteCode('')
 
@@ -156,15 +133,6 @@ const SettingsPage = ({ user, userData }) => {
     setError(''); setLoading(true)
     try {
       await updateDoc(doc(db, 'users', user.uid), { companyId: null })
-      // Also remove company_members entry
-      try {
-        const memberSnap = await getDocs(query(collection(db, 'company_members'), where('userId', '==', user.uid)))
-        for (const memberDoc of memberSnap.docs) {
-          await deleteDoc(memberDoc.ref)
-        }
-      } catch (cleanupErr) {
-        console.warn('company_members cleanup on leave:', cleanupErr)
-      }
       setCompanyName(null)
       setSuccess('Du hast die Firma verlassen.')
       setTimeout(() => window.location.reload(), 1000)
@@ -510,7 +478,7 @@ const SettingsPage = ({ user, userData }) => {
       </div>
 
       {/* Version */}
-      <p style={{ textAlign: 'center', fontSize: '12px', color: '#C9BFAF', marginTop: '20px' }}>CreatorHub v7.0 — Team Edition</p>
+      <p style={{ textAlign: 'center', fontSize: '12px', color: '#C9BFAF', marginTop: '20px' }}>CreatorHub v6.0 — Enterprise Ready</p>
     </div>
   )
 }

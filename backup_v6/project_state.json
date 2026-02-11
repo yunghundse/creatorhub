@@ -1,7 +1,7 @@
 {
-  "version": "7.0",
+  "version": "6.0",
   "lastUpdated": "2026-02-11",
-  "codeName": "Team Edition",
+  "codeName": "Enterprise Ready",
   "stack": {
     "frontend": "React 19 + Vite 7",
     "backend": "Firebase (Auth + Firestore)",
@@ -19,50 +19,28 @@
   "stripe_integration": "live-ready",
 
   "app_readiness_score": {
-    "total": 94,
+    "total": 92,
     "breakdown": {
       "pwa_mobile": { "score": 95, "status": "active", "details": "Manifest, Service Worker, Mobile-First UI, Push-Ready" },
       "notification_system": { "score": 90, "status": "active", "details": "In-App Glocke mit Dropdown, Push-SW bereit" },
       "asset_handling": { "score": 85, "status": "active", "details": "Watermark-Generator, Asset Versioning (v1/v2/Final), ContentProtection" },
       "ai_tools": { "score": 88, "status": "active", "details": "Caption Generator (5 Plattformen), Viral Predictor (Preview), Repurposing (Preview)" },
       "legal_compliance": { "score": 100, "status": "active", "details": "Impressum, AGB, Datenschutz (DSGVO), NDA-Signing" },
-      "security": { "score": 92, "status": "active", "details": "Session Management, Content Protection, Audit Logs, Account Deletion Cleanup, company_members Cleanup" },
+      "security": { "score": 90, "status": "active", "details": "Session Management, Content Protection, Audit Logs, Rechtsklick-Schutz" },
       "pricing_billing": { "score": 95, "status": "active", "details": "3-Tier Pricing, Stripe Checkout, Subscription Dashboard, Billing History" },
       "email_automation": { "score": 85, "status": "configured", "details": "6 Trigger-Types, HTML Templates, Firestore Queue" },
       "admin_dashboard": { "score": 95, "status": "active", "details": "User-Management, Content-Moderation, Revenue, System-Statistik, Wartung" },
-      "team_management": { "score": 96, "status": "active", "details": "company_members Bridge Table, Pending/Approved Flow, Dual-View Dashboard, Firma Tasks/Assets/Admin" },
-      "company_system": { "score": 95, "status": "active", "details": "CompanyContext, FirmaDashboard (Owner/Member View), FirmaTasks, FirmaAssets, FirmaAdmin, Dynamic Navigation" }
+      "team_management": { "score": 92, "status": "active", "details": "Einladungscodes, Slot-Limits, Firma beitreten/verlassen" }
     }
   },
 
   "roles": ["admin", "manager", "model", "influencer", "cutter"],
-
-  "database_schema": {
-    "users": {
-      "fields": ["uid", "email", "displayName", "role", "approved", "blocked", "companyId", "abo", "createdAt"],
-      "note": "companyId is legacy field, also mirrored in company_members"
-    },
-    "companies": {
-      "fields": ["name", "description", "ownerId", "ownerEmail", "inviteCode", "abo", "createdAt"],
-      "note": "Owner is manager/influencer who created the company"
-    },
-    "company_members": {
-      "fields": ["companyId", "userId", "email", "displayName", "role", "status", "joinedAt"],
-      "status_values": ["pending", "approved"],
-      "note": "Bridge table: user joins via invite -> pending -> owner approves -> approved -> dashboard access"
-    },
-    "company_tasks": {
-      "fields": ["companyId", "title", "description", "assignedTo", "priority", "status", "createdBy", "createdAt"],
-      "note": "Tasks assigned within a company team"
-    }
-  },
 
   "routes": {
     "public": ["/login", "/register"],
     "core": ["/", "/content", "/finanzen", "/kalender", "/chat", "/einstellungen", "/onboarding", "/fyp", "/admin"],
     "settings": ["/einstellungen/sessions"],
     "legal": ["/legal/impressum", "/legal/agb", "/legal/datenschutz", "/legal/nda"],
-    "firma": ["/firma/dashboard", "/firma/tasks", "/firma/assets", "/firma/admin"],
     "dashboard": [
       "/dashboard/company", "/dashboard/models", "/dashboard/collab", "/dashboard/trends",
       "/dashboard/assets", "/dashboard/analytics", "/dashboard/schedule", "/dashboard/revenue",
@@ -76,22 +54,10 @@
     ]
   },
 
-  "totalRoutes": 46,
-  "totalComponents": 56,
+  "totalRoutes": 42,
+  "totalComponents": 52,
 
   "features": {
-    "companySystem": {
-      "companyContext": true,
-      "companyMembersBridgeTable": true,
-      "pendingApprovedFlow": true,
-      "dualViewDashboard": true,
-      "ownerView": "stats, pending alerts, quick actions (team, tasks, assets, calendar, analytics)",
-      "memberView": "welcome, onboarding guide (Kalender/Aufgaben/Assets), quick actions",
-      "firmaTasks": true,
-      "firmaAssets": true,
-      "firmaAdmin": "team management, approve/reject, billing tab",
-      "dynamicNavigation": "Mein Team label replaced with company name, hidden if no company"
-    },
     "pwa": {
       "manifest": true,
       "serviceWorker": true,
@@ -128,9 +94,7 @@
       "sessionManagement": true,
       "contentProtection": true,
       "auditLogs": true,
-      "loginAudit": true,
-      "accountDeletionCleanup": true,
-      "companyMembersCleanup": true
+      "loginAudit": true
     },
     "billing": {
       "pricingTable": true,
@@ -159,43 +123,14 @@
       "registrationChart": true,
       "subscriptionStats": true,
       "serverStatus": true
-    },
-    "navigation": {
-      "premiumRemovedFromMainNav": true,
-      "firmaInNav": true,
-      "dynamicCompanyLabel": true,
-      "requiresCompanyFlag": true,
-      "note": "Premium moved to Settings/Abo-Verwaltung, Firma shows only when user has companyId"
     }
   },
 
-  "v7_changes": {
-    "removed": ["Premium/Crown from all role navigation bars"],
-    "added": [
-      "CompanyContext (src/contexts/CompanyContext.jsx)",
-      "FirmaDashboard with Owner/Member dual view",
-      "FirmaTasks with Firestore CRUD",
-      "FirmaAssets with grid/list view",
-      "FirmaAdmin with team + billing tabs",
-      "company_members Firestore collection (bridge table)",
-      "company_tasks Firestore collection",
-      "Dynamic nav: requiresCompany flag, company name label",
-      "Account deletion cleanup for company_members",
-      "Leave company cleanup for company_members",
-      "Join company creates company_members entry with pending status"
-    ],
-    "modified": [
-      "App.jsx: CompanyProvider wrapper, firma route imports",
-      "Layout.jsx: ROLE_NAV without Premium, with firma + requiresCompany",
-      "SettingsPage.jsx: company_members cleanup on delete/leave/join"
-    ]
-  },
-
   "automationNeeded": {
-    "stripeWebhook": "Vercel Serverless Function fuer Payment-Confirmation",
+    "stripeWebhook": "Vercel Serverless Function für Payment-Confirmation",
     "emailProcessor": "Cloud Function die emailQueue verarbeitet",
     "pushService": "Firebase Cloud Messaging oder Web Push API",
-    "fileStorage": "Firebase Storage fuer echte Asset-Uploads",
-    "aiBackend": "OpenAI/Claude API fuer echte Caption-Generation"
+    "fileStorage": "Firebase Storage für echte Asset-Uploads",
+    "aiBackend": "OpenAI/Claude API für echte Caption-Generation"
   }
 }

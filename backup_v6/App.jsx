@@ -6,7 +6,6 @@ import { auth, db } from './firebase'
 import { Sparkles, Wrench } from 'lucide-react'
 
 import Layout from './components/Layout'
-import { CompanyProvider } from './contexts/CompanyContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
@@ -33,12 +32,6 @@ import PricingPage from './pages/dashboard/PricingPage'
 import SubscriptionPage from './pages/dashboard/SubscriptionPage'
 import OnboardingPage from './pages/OnboardingPage'
 import FYPPage from './pages/FYPPage'
-
-// Firma pages (new company system)
-import FirmaDashboard from './pages/firma/FirmaDashboard'
-import FirmaTasks from './pages/firma/FirmaTasks'
-import FirmaAssets from './pages/firma/FirmaAssets'
-import FirmaAdmin from './pages/firma/FirmaAdmin'
 
 // Premium pages
 import PremiumPage from './pages/dashboard/PremiumPage'
@@ -112,11 +105,7 @@ const ProtectedRoute = ({ user, userData, maintenanceMode, maintenanceMessage, c
     )
   }
 
-  return (
-    <CompanyProvider user={user} userData={userData}>
-      <Layout user={user} userData={userData}>{children}</Layout>
-    </CompanyProvider>
-  )
+  return <Layout user={user} userData={userData}>{children}</Layout>
 }
 
 // Role guard: only allow specific roles
@@ -204,12 +193,6 @@ function App() {
       <Route path="/legal/agb" element={<ProtectedRoute {...pp}><AGBPage /></ProtectedRoute>} />
       <Route path="/legal/datenschutz" element={<ProtectedRoute {...pp}><DatenschutzPage /></ProtectedRoute>} />
       <Route path="/legal/nda" element={<ProtectedRoute {...pp}><NDAPage /></ProtectedRoute>} />
-
-      {/* Firma routes — new company system */}
-      <Route path="/firma/dashboard" element={<ProtectedRoute {...pp}><FirmaDashboard userData={userData} /></ProtectedRoute>} />
-      <Route path="/firma/tasks" element={<ProtectedRoute {...pp}><FirmaTasks userData={userData} /></ProtectedRoute>} />
-      <Route path="/firma/assets" element={<ProtectedRoute {...pp}><FirmaAssets userData={userData} /></ProtectedRoute>} />
-      <Route path="/firma/admin" element={<ProtectedRoute {...pp}><FirmaAdmin userData={userData} /></ProtectedRoute>} />
 
       {/* Dashboard routes — role-gated */}
       <Route path="/dashboard/company" element={<ProtectedRoute {...pp}><RoleGuard userData={userData} allowed={['manager']}><CompanyPage /></RoleGuard></ProtectedRoute>} />
