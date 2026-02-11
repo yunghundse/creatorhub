@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
-import { storage } from '../firebase'
+import { supabase, SUPABASE_BUCKET, supabaseUrl } from '../supabase'
 
 const MAX_SIZE = {
   image: 10 * 1024 * 1024,   // 10MB
@@ -40,7 +39,7 @@ export function useFileUpload() {
 
     const category = getFileCategory(file)
     if (!category) {
-      setError('Dateityp nicht unterstützt. Erlaubt: JPG, PNG, WebP, GIF, MP4, MOV, WebM, PDF')
+      setError('Dateityp nicht erlaubt. Erlaubt: JPG, PNG, WebP, GIF, MP4, MOV, WebM, PDF')
       return null
     }
 
@@ -51,33 +50,39 @@ export function useFileUpload() {
     }
 
     setUploading(true)
+    setProgress(10)
 
     try {
-      const storageRef = ref(storage, storagePath)
-      const uploadTask = uploadBytesResumable(storageRef, file)
+      // storagePath is the full path including filename (e.g. companies/abc/assets/123_photo.jpg)
+      setProgress(30)
 
-      return new Promise((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
-            setProgress(pct)
-          },
-          (err) => {
-            setError('Upload fehlgeschlagen: ' + err.message)
-            setUploading(false)
-            reject(err)
-          },
-          async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref)
-            setUploading(false)
-            setProgress(100)
-            resolve({ url: downloadURL, path: storagePath })
-          }
-        )
-      })
+      const { data, error: uploadError } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type,
+        })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      setProgress(80)
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from(SUPABASE_BUCKET)
+        .getPublicUrl(data.path)
+
+      const downloadURL = urlData.publicUrl
+
+      setUploading(false)
+      setProgress(100)
+
+      return { url: downloadURL, path: data.path }
     } catch (err) {
-      setError('Upload fehlgeschlagen: ' + err.message)
+      setError('Upload fehlgeschlagen: ' + (err.message || 'Unbekannter Fehler'))
       setUploading(false)
       return null
     }
@@ -85,8 +90,13 @@ export function useFileUpload() {
 
   const deleteFile = async (storagePath) => {
     try {
-      const storageRef = ref(storage, storagePath)
-      await deleteObject(storageRef)
+      const { error: deleteError } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .remove([storagePath])
+
+      if (deleteError) {
+        console.warn('Delete file error:', deleteError)
+      }
     } catch (err) {
       console.warn('Delete file error:', err)
     }
