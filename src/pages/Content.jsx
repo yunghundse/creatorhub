@@ -30,7 +30,7 @@ const Content = () => {
   // File upload
   const fileRef = useRef(null)
   const [selectedFile, setSelectedFile] = useState(null)
-  const { upload, uploading, progress, error: uploadError, reset: resetUpload } = useFileUpload()
+  const { upload, deleteFile, uploading, progress, error: uploadError, reset: resetUpload } = useFileUpload()
 
   const currentUser = auth.currentUser
   const { company, isApproved, hasCompany } = useCompany()
@@ -160,8 +160,13 @@ const Content = () => {
     await updateDoc(doc(db, 'content', item.id), { status: newStatus, progress })
   }
 
-  const deleteContent = async (id) => {
-    await deleteDoc(doc(db, 'content', id))
+  const deleteContent = async (item) => {
+    try {
+      if (item.storagePath) await deleteFile(item.storagePath)
+      await deleteDoc(doc(db, 'content', item.id))
+    } catch (err) {
+      console.error('Delete content error:', err)
+    }
   }
 
   const filtered = activeFilter === 'Alle' ? content : content.filter(c => c.status === activeFilter)
@@ -422,7 +427,7 @@ const Content = () => {
                 <button onClick={() => openEdit(item)} style={{ background: 'none', border: 'none', color: '#A89B8C', padding: '4px', cursor: 'pointer' }}>
                   <Edit3 size={14} />
                 </button>
-                <button onClick={() => deleteContent(item.id)} style={{ background: 'none', border: 'none', color: '#A89B8C', padding: '4px', cursor: 'pointer' }}>
+                <button onClick={() => deleteContent(item)} style={{ background: 'none', border: 'none', color: '#A89B8C', padding: '4px', cursor: 'pointer' }}>
                   <Trash2 size={14} />
                 </button>
               </div>
