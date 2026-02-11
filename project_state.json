@@ -1,0 +1,100 @@
+{
+  "version": "4.1",
+  "lastUpdated": "2026-02-11",
+  "stack": {
+    "frontend": "React 18 + Vite 7",
+    "auth": "Firebase Auth (Email/Password + Google, signInWithRedirect for Vercel)",
+    "database": "Firebase Firestore",
+    "hosting": "Vercel",
+    "styling": "Inline CSS + Glassmorphism Cream Theme"
+  },
+  "roles": {
+    "manager": {
+      "status": "active",
+      "permissions": ["create_company", "manage_models", "shared_calendar", "analytics", "trends", "revenue_split", "content_approval", "brand_deals", "audit_logs"],
+      "abo": { "free": 1, "pro": 5, "business": 10 },
+      "nav": ["home", "company", "approvals", "revenue", "brand-deals", "analytics", "trends", "assets", "audit-log", "calendar", "chat"]
+    },
+    "model": {
+      "status": "active",
+      "permissions": ["shared_calendar_write", "assigned_to_manager", "assets", "content_upload_for_approval"],
+      "nav": ["home", "approvals", "schedule", "assets", "content", "chat", "finanzen"]
+    },
+    "influencer": {
+      "status": "active",
+      "permissions": ["create_events", "create_todos", "assign_cutter", "trends", "collab", "asset_library", "deadlines"],
+      "nav": ["home", "collab", "deadlines", "trends", "asset-library", "assets", "content", "calendar", "finanzen", "chat"]
+    },
+    "cutter": {
+      "status": "active",
+      "permissions": ["shared_calendar_read_write", "receive_tasks", "collab", "assets", "asset_library", "deadlines"],
+      "nav": ["home", "collab", "deadlines", "asset-library", "assets", "calendar", "chat", "finanzen"]
+    },
+    "admin": { "email": "yunghundse@gmail.com", "permissions": ["all", "maintenance_mode", "user_management", "audit_logs"] }
+  },
+  "features": {
+    "auth_login": { "status": "done" },
+    "auth_register": { "status": "done" },
+    "admin_panel": { "status": "done" },
+    "calendar": { "status": "done" },
+    "chat": { "status": "done" },
+    "content_pipeline": { "status": "done" },
+    "finance": { "status": "done" },
+    "home_dashboard": { "status": "done" },
+    "security_password_change": { "status": "done" },
+    "security_account_delete": { "status": "done" },
+    "legal_pages": { "status": "done" },
+    "vercel_spa_routing": { "status": "done" },
+    "security_headers": { "status": "done" },
+    "role_based_navigation": { "status": "done" },
+    "role_guard_routes": { "status": "done" },
+    "company_system": { "status": "done" },
+    "collab_board": { "status": "done" },
+    "trend_engine": { "status": "done" },
+    "assets_management": { "status": "done" },
+    "analytics_dashboard": { "status": "done" },
+    "revenue_share_tracker": { "status": "done", "notes": "Manager/Model Split mit Slider, pro Plattform, Filter nach Model" },
+    "content_approval_queue": { "status": "done", "notes": "Model upload -> Manager approve/reject mit Feedback" },
+    "asset_library": { "status": "done", "notes": "Intros, Outros, Sounds, Fonts, Overlays - kategorisiert" },
+    "brand_deal_crm": { "status": "done", "notes": "Deals tracken: Verhandlung->Bestätigt->Gepostet->Bezahlt" },
+    "audit_logs": { "status": "done", "notes": "Timeline aller Team-Aktionen mit Filter" },
+    "deadline_timer": { "status": "done", "notes": "Countdown für Uploads, Plattform-Tags, Überfällig-Warnung" },
+    "team_header": { "status": "done", "notes": "Header zeigt Rolle + Firmenname + Abo-Plan" },
+    "pricing_page": { "status": "done", "notes": "Free/Pro/Business Pläne, Stripe-ready (Demo-Modus), Upgrade/Downgrade, CompanyPage Crown-Button" },
+    "stripe_payment": { "status": "pending", "notes": "Checkout-Session Backend nötig für echte Zahlungen" },
+    "firebase_storage_upload": { "status": "pending" },
+    "viral_predictor": { "status": "pending" },
+    "auto_repurposing": { "status": "pending" },
+    "timestamp_feedback": { "status": "pending" },
+    "tax_export": { "status": "pending" },
+    "model_invite_join": { "status": "pending" }
+  },
+  "firestore_collections": {
+    "users": "uid, email, displayName, photoURL, approved, blocked, role, companyId, abo, createdAt, lastLogin",
+    "events": "userId, title, date, time, type, notes, createdAt",
+    "content": "userId, title, type, status, progress, deadline, earnings, notes, createdAt",
+    "finances": "userId, platform, brutto, netto, month, note, createdAt",
+    "chatRooms": "participants[], lastMessage, lastMessageTime, createdAt",
+    "chatRooms/{id}/messages": "senderId, senderName, text, timestamp",
+    "settings/maintenance": "enabled, message, updatedAt",
+    "companies": "name, description, ownerId, ownerEmail, inviteCode, abo, createdAt",
+    "tasks": "title, description, priority, status, deadline, createdBy, assignedTo, companyId, createdAt",
+    "assets": "title, url, type, notes, status, uploadedBy, companyId, createdAt",
+    "revenueSplits": "companyId, modelId, modelName, platform, brutto, splitPercent, modelShare, managerShare, month, createdBy, createdAt",
+    "approvals": "companyId, uploadedBy, uploaderName, title, description, fileUrl, type, status, feedback, reviewedBy, createdAt",
+    "assetLibrary": "companyId, title, category, url, notes, uploadedBy, uploaderName, createdAt",
+    "brandDeals": "companyId, brand, contact, value, deadline, platform, status, postUrl, notes, createdBy, createdAt",
+    "auditLogs": "companyId, userId, userName, action, target, details, timestamp",
+    "deadlines": "companyId, title, platform, dueDate, notes, status, createdBy, createdAt"
+  },
+  "pages": {
+    "core": ["Home", "Content", "Finance", "CalendarPage", "Chat", "SettingsPage", "Admin", "Login", "Register"],
+    "dashboard": ["CompanyPage", "CollabPage", "TrendsPage", "AssetsPage", "AnalyticsPage", "RevenueSharePage", "ApprovalQueuePage", "AssetLibraryPage", "BrandDealsPage", "AuditLogPage", "DeadlinesPage", "PricingPage"]
+  },
+  "buildInfo": {
+    "lastBuild": "2026-02-11",
+    "bundleSize": "791.07 kB",
+    "modules": 1762,
+    "status": "success"
+  }
+}

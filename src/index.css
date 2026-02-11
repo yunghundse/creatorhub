@@ -1,0 +1,191 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Cream Palette */
+  --cream-50: #FFFDF7;
+  --cream-100: #FFF9EB;
+  --cream-200: #FFF3D6;
+  --cream-300: #FFE8B8;
+  --cream-400: #FFDDA0;
+  --cream-500: #F5D0A9;
+  --cream-600: #E8C49A;
+
+  /* Accent */
+  --rose-400: #FF8FAB;
+  --rose-500: #FF6B9D;
+  --rose-600: #E05585;
+
+  /* Warm Neutrals */
+  --warm-50: #FEFCF9;
+  --warm-100: #FBF7F2;
+  --warm-200: #F3EDE4;
+  --warm-300: #E8DFD3;
+  --warm-400: #C9BFAF;
+  --warm-500: #A89B8C;
+  --warm-600: #7A6F62;
+  --warm-700: #5C5349;
+  --warm-800: #3D362F;
+  --warm-900: #2A2420;
+
+  /* Functional */
+  --success: #6BC9A0;
+  --warning: #F5C563;
+  --info: #7EB5E6;
+  --text-primary: #2A2420;
+  --text-secondary: #7A6F62;
+  --text-tertiary: #A89B8C;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(42, 36, 32, 0.06);
+  --shadow-md: 0 4px 12px rgba(42, 36, 32, 0.08);
+  --shadow-lg: 0 8px 30px rgba(42, 36, 32, 0.10);
+  --shadow-xl: 0 16px 50px rgba(42, 36, 32, 0.12);
+  --shadow-glow: 0 4px 20px rgba(255, 107, 157, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--cream-50);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--warm-300);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--warm-400);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+/* Staggered animations */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Glass card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+/* Gradient backgrounds */
+.bg-cream-gradient {
+  background: linear-gradient(135deg, var(--cream-50) 0%, var(--cream-100) 50%, var(--warm-100) 100%);
+}
+
+.bg-rose-gradient {
+  background: linear-gradient(135deg, var(--rose-400) 0%, var(--rose-500) 50%, var(--rose-600) 100%);
+}
+
+/* Input styles */
+input, textarea {
+  font-family: inherit;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+}
+
+/* Button reset */
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Selection */
+::selection {
+  background: rgba(255, 107, 157, 0.2);
+  color: var(--text-primary);
+}
+
+/* Page transition wrapper */
+.page-transition {
+  animation: fadeIn 0.3s ease-out;
+}
