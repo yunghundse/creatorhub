@@ -100,6 +100,42 @@ export const CompanyProvider = ({ user, userData, children }) => {
     return () => { unsub() }
   }, [company?.id])
 
+  // Create a new company (manager only)
+  const createCompany = async (companyName) => {
+    if (!canOwnCompany) throw new Error('Nur Manager können Firmen erstellen.')
+    if (!companyName?.trim()) throw new Error('Bitte gib einen Firmennamen ein.')
+
+    // Check if manager already has a company
+    const existingQ = query(collection(db, 'companies'), where('ownerId', '==', user.uid))
+    const existingSnap = await getDocs(existingQ)
+    if (!existingSnap.empty) throw new Error('Du hast bereits eine Firma.')
+
+    // Generate invite code (6 chars)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let code = ''
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
+
+    const companyData = {
+      name: companyName.trim(),
+      ownerId: user.uid,
+      ownerEmail: user.email,
+      inviteCode: code,
+      abo: 'free',
+      createdAt: serverTimestamp(),
+    }
+
+    const docRef = await addDoc(collection(db, 'companies'), companyData)
+
+    // Set companyId on user doc (legacy support)
+    await updateDoc(doc(db, 'users', user.uid), { companyId: docRef.id })
+
+    setCompany({ id: docRef.id, ...companyData })
+    setIsOwner(true)
+    setMembership({ status: 'approved', role: 'owner' })
+
+    return { id: docRef.id, inviteCode: code, ...companyData }
+  }
+
   // Join company via invite code
   const joinCompany = async (inviteCode) => {
     const q = query(collection(db, 'companies'), where('inviteCode', '==', inviteCode.trim().toUpperCase()))
@@ -198,7 +234,7 @@ export const CompanyProvider = ({ user, userData, children }) => {
       company, membership, members, loading,
       isOwner, isApproved, isPending, hasCompany,
       canOwnCompany, canJoinCompany,
-      joinCompany, approveMember, removeMember, leaveCompany,
+      createCompany, joinCompany, approveMember, removeMember, leaveCompany,
       userRole
     }}>
       {children}

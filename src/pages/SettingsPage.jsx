@@ -23,11 +23,16 @@ const SettingsPage = ({ user, userData }) => {
   const [joinSuccess, setJoinSuccess] = useState('')
   const [joinLoading, setJoinLoading] = useState(false)
   const [companyName, setCompanyName] = useState(null)
+  const [newCompanyName, setNewCompanyName] = useState('')
+  const [createError, setCreateError] = useState('')
+  const [createLoading, setCreateLoading] = useState(false)
+  const [createdCode, setCreatedCode] = useState(null)
 
   const userRole = userData?.role || 'model'
   const hasCompany = !!userData?.companyId
   // Models können beitreten, Manager gründen selbst
   const canJoinCompany = userRole === 'model'
+  const isManager = userRole === 'manager'
 
   // Load current company name
   useEffect(() => {
@@ -36,6 +41,17 @@ const SettingsPage = ({ user, userData }) => {
       if (snap.exists()) setCompanyName(snap.data().name)
     }).catch(() => {})
   }, [userData?.companyId])
+
+  // Also check companies collection for manager ownership
+  useEffect(() => {
+    if (!isManager || hasCompany) return
+    getDocs(query(collection(db, 'companies'), where('ownerId', '==', user.uid))).then(snap => {
+      if (!snap.empty) {
+        const c = snap.docs[0]
+        setCompanyName(c.data().name)
+      }
+    }).catch(() => {})
+  }, [isManager, user?.uid])
 
   const isGoogleUser = user?.providerData?.[0]?.providerId === 'google.com'
 
@@ -87,6 +103,38 @@ const SettingsPage = ({ user, userData }) => {
       else setError(`Fehler: ${err.code || err.message}`)
     }
     setLoading(false)
+  }
+
+  const handleCreateCompany = async () => {
+    if (!newCompanyName.trim()) { setCreateError('Bitte gib einen Firmennamen ein.'); return }
+    setCreateError(''); setCreateLoading(true)
+
+    try {
+      // Generate invite code (6 chars)
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+      let code = ''
+      for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
+
+      const companyData = {
+        name: newCompanyName.trim(),
+        ownerId: user.uid,
+        ownerEmail: user.email,
+        inviteCode: code,
+        abo: 'free',
+        createdAt: serverTimestamp(),
+      }
+
+      const docRef = await addDoc(collection(db, 'companies'), companyData)
+      await updateDoc(doc(db, 'users', user.uid), { companyId: docRef.id })
+
+      setCreatedCode(code)
+      setCompanyName(newCompanyName.trim())
+      setNewCompanyName('')
+    } catch (err) {
+      console.error('Create company error:', err)
+      setCreateError('Fehler beim Erstellen. Bitte versuche es erneut.')
+    }
+    setCreateLoading(false)
   }
 
   const handleJoinCompany = async () => {
@@ -279,14 +327,85 @@ const SettingsPage = ({ user, userData }) => {
               </p>
             </Card>
           </>
+        ) : isManager ? (
+          <>
+            {/* Manager: Create Company Form */}
+            {createdCode ? (
+              <Card style={{ padding: '24px', textAlign: 'center', border: '1.5px solid rgba(107,201,160,0.3)', background: 'rgba(107,201,160,0.04)' }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '18px',
+                  background: 'linear-gradient(135deg, #6BC9A0, #4FA882)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 14px', boxShadow: '0 4px 15px rgba(107,201,160,0.3)',
+                }}>
+                  <Check size={26} color="white" />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#2A2420', marginBottom: '6px' }}>Firma erstellt!</h3>
+                <p style={{ fontSize: '13px', color: '#7A6F62', marginBottom: '16px' }}>
+                  Teile diesen Einladungscode mit deinen Models:
+                </p>
+                <div style={{
+                  padding: '14px 20px', borderRadius: '14px',
+                  background: 'rgba(42,36,32,0.04)', border: '1.5px solid #E8DFD3',
+                  marginBottom: '16px',
+                }}>
+                  <span style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '6px', fontFamily: 'monospace', color: '#2A2420' }}>
+                    {createdCode}
+                  </span>
+                </div>
+                <button onClick={() => { navigator.clipboard?.writeText(createdCode) }} style={{
+                  padding: '10px 24px', borderRadius: '12px', border: '1.5px solid rgba(126,181,230,0.3)',
+                  background: 'rgba(126,181,230,0.06)', color: '#7EB5E6', fontWeight: '600',
+                  fontSize: '13px', cursor: 'pointer', fontFamily: 'inherit', marginBottom: '12px',
+                }}>
+                  Code kopieren
+                </button>
+                <br />
+                <Button variant="primary" onClick={() => { setTimeout(() => window.location.reload(), 200) }} style={{ marginTop: '8px', padding: '12px 24px' }}>
+                  Zum Firma-Dashboard
+                </Button>
+              </Card>
+            ) : (
+              <Card style={{ padding: '20px', border: '1.5px solid rgba(245,197,99,0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                  <Building2 size={18} color="#F5C563" />
+                  <span style={{ fontWeight: '600', color: '#2A2420', fontSize: '15px' }}>Firma erstellen</span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#7A6F62', marginBottom: '14px', lineHeight: '1.5' }}>
+                  Erstelle deine Firma und erhalte einen Einladungscode, den du mit deinen Models teilen kannst.
+                </p>
+
+                {createError && (
+                  <div style={{
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                    borderRadius: '10px', padding: '10px 14px', marginBottom: '12px',
+                    color: '#DC2626', fontSize: '13px', fontWeight: '500',
+                  }}>{createError}</div>
+                )}
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#5C5349', display: 'block', marginBottom: '6px' }}>Firmenname</label>
+                  <input
+                    type="text"
+                    value={newCompanyName}
+                    onChange={e => setNewCompanyName(e.target.value)}
+                    placeholder="z.B. Studio Max, CreatorTeam..."
+                    maxLength={40}
+                    style={inputStyle}
+                    onKeyDown={e => e.key === 'Enter' && handleCreateCompany()}
+                  />
+                </div>
+
+                <Button variant="primary" onClick={handleCreateCompany} disabled={createLoading || !newCompanyName.trim()} style={{ width: '100%', padding: '13px' }}>
+                  {createLoading ? 'Wird erstellt...' : 'Firma gründen'}
+                </Button>
+              </Card>
+            )}
+          </>
         ) : (
           <Card style={{ textAlign: 'center', padding: '40px 20px' }}>
             <Building2 size={36} color="#E8DFD3" style={{ marginBottom: '12px' }} />
-            <p style={{ color: '#7A6F62', fontSize: '14px', marginBottom: '4px' }}>
-              {userRole === 'manager'
-                ? 'Als Manager kannst du eine Firma über die Firma-Seite erstellen.'
-                : 'Du bist aktuell keiner Firma zugeordnet.'}
-            </p>
+            <p style={{ color: '#7A6F62', fontSize: '14px' }}>Du bist aktuell keiner Firma zugeordnet.</p>
           </Card>
         )}
       </div>
